@@ -4,9 +4,6 @@
 #include "ModulesApp.h"
 #include "MooseSyntax.h"
 
-// Include RACCOON app
-#include "base/raccoonApp.h"
-
 InputParameters
 reproductionApp::validParams()
 {
@@ -27,9 +24,6 @@ void
 reproductionApp::registerAll(Factory & f, ActionFactory & af, Syntax & syntax)
 {
   ModulesApp::registerAllObjects<reproductionApp>(f, af, syntax);
-  
-  // Register RACCOON
-  raccoonApp::registerAll(f, af, syntax);
   Registry::registerObjectsTo(f, {"reproductionApp"});
   Registry::registerActionsTo(af, {"reproductionApp"});
 
