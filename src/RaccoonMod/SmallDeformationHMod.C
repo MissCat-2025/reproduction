@@ -1,19 +1,18 @@
-#include "SmallDeformationHBasedElasticity.h"
+#include "SmallDeformationHMod.h"
 #include "RankTwoScalarTools.h"
 #include "RaccoonUtils.h"
 
-registerMooseObject("reproductionApp", SmallDeformationHBasedElasticity);
+registerMooseObject("reproductionApp", SmallDeformationHMod);
 
 InputParameters
-SmallDeformationHBasedElasticity::validParams()
+SmallDeformationHMod::validParams()
 {
-  InputParameters params = SmallDeformationElasticityModel::validParams();
+  InputParameters params = SmallDeformationElasticityModelMod::validParams();
   params.addClassDescription("H-based elasticity model with integrated history variable tracking");
 
   params.addRequiredParam<MaterialPropertyName>("youngs_modulus", "Young's modulus $E_0$");
   params.addRequiredParam<MaterialPropertyName>("poissons_ratio", "Poisson's ratio $\\nu$");
   params.addRequiredParam<MaterialPropertyName>("tensile_strength", "Tensile strength $f_t$");
-  params.addRequiredParam<MaterialPropertyName>("fracture_energy", "Fracture energy $G_f$");
   params.addRequiredCoupledVar("phase_field", "Name of the phase-field (damage) variable");
   params.addParam<MaterialPropertyName>(
       "strain_energy_density",
@@ -24,13 +23,12 @@ SmallDeformationHBasedElasticity::validParams()
   return params;
 }
 
-SmallDeformationHBasedElasticity::SmallDeformationHBasedElasticity(const InputParameters & parameters)
-  : SmallDeformationElasticityModel(parameters),
+SmallDeformationHMod::SmallDeformationHMod(const InputParameters & parameters)
+  : SmallDeformationElasticityModelMod(parameters),
     DerivativeMaterialPropertyNameInterface(),
     _E0(getADMaterialProperty<Real>("youngs_modulus")),
     _nu(getADMaterialProperty<Real>("poissons_ratio")),
     _ft(getADMaterialProperty<Real>("tensile_strength")),
-    _Gf(getADMaterialProperty<Real>("fracture_energy")),
     _d_name(getVar("phase_field", 0)->name()),
     _psie_name(prependBaseName("strain_energy_density", true)),
     _psie(declareADProperty<Real>(_psie_name)),
@@ -45,7 +43,7 @@ SmallDeformationHBasedElasticity::SmallDeformationHBasedElasticity(const InputPa
 }
 
 ADRankTwoTensor
-SmallDeformationHBasedElasticity::computeStress(const ADRankTwoTensor & strain)
+SmallDeformationHMod::computeStress(const ADRankTwoTensor & strain)
 {
   const ADReal K = _E0[_qp] / (3.0 * (1.0 - 2.0 * _nu[_qp]));
   const ADReal G = _E0[_qp] / (2.0 * (1.0 + _nu[_qp]));

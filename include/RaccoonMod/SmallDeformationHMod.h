@@ -1,13 +1,13 @@
 #pragma once
-#include "SmallDeformationElasticityModel.h"
+#include "SmallDeformationElasticityModelMod.h"
 #include "DerivativeMaterialPropertyNameInterface.h"
 
-class SmallDeformationHBasedElasticity : public SmallDeformationElasticityModel,
+class SmallDeformationHMod : public SmallDeformationElasticityModelMod,
                                           public DerivativeMaterialPropertyNameInterface
 {
 public:
   static InputParameters validParams();
-  SmallDeformationHBasedElasticity(const InputParameters & parameters);
+  SmallDeformationHMod(const InputParameters & parameters);
 
   virtual ADRankTwoTensor computeStress(const ADRankTwoTensor & strain) override;
 
@@ -16,7 +16,6 @@ protected:
   const ADMaterialProperty<Real> & _E0;  // 对应参考代码的_K
   const ADMaterialProperty<Real> & _nu;    // 对应参考代码的_G
   const ADMaterialProperty<Real> & _ft;
-  const ADMaterialProperty<Real> & _Gf;
   const VariableName _d_name;             // 与参考代码完全一致
   const MaterialPropertyName _psie_name; // 应变能密度声明在前
   ADMaterialProperty<Real> & _psie;

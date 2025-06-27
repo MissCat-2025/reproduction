@@ -1,5 +1,5 @@
 # 陶瓷片热冲击实验 - 热弹性模拟部分
-# mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i ceramic_fracture.i
+# mpirun -n 14 /home/yp/projects/reproduction/reproduction-opt -i BFGS1.i
 
 [GlobalParams]
   displacements = 'disp_x disp_y'
@@ -9,8 +9,6 @@
 # 陶瓷材料参数
 E_ceramic = 370e9       # 陶瓷杨氏模量 (Pa)
 nu_ceramic = 0.3       # 陶瓷泊松比
-K = '${fparse E_ceramic/(3*(1-2*nu_ceramic))}'
-G = '${fparse E_ceramic/(2*(1+nu_ceramic))}'
 alpha_ceramic = 7.5e-6    # 陶瓷热膨胀系数 (1/°C)
 k_ceramic = 31          # 陶瓷导热系数 (W/m·K)
 cp_ceramic = 880        # 比热容 (J/kg·K)
@@ -18,7 +16,7 @@ rho_ceramic = 3980      # 密度 (kg/m³)
 
 # 断裂参数
 Gc = 42.47               # 断裂能 (J/m^2)
-l = 0.2e-3                # 相场正则化长度 (m)
+l = 0.15e-3                # 相场正则化长度 (m)
 nx = '${fparse int(25e-3/(l/3))}'
 ny = '${fparse int(5e-3/(l/3))}'
 ft = 180e6                # 抗拉强度 (Pa)
@@ -44,11 +42,11 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
   []
   [strain_zz]
   []
+  [d]  # 相场变量
+  []
 []
 
 [AuxVariables]
-  [d]                         # 相场变量
-  []
   [MaxPrincipal]
     order = CONSTANT
     family = MONOMIAL
@@ -80,6 +78,19 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
   [heat_dt]
     type = ADHeatConductionTimeDerivative
     variable = temp
+  []
+
+  [diff]
+    type = ADPFFDiffusion
+    variable = d
+    fracture_toughness = Gc
+    regularization_length = l
+    normalization_constant = c0
+  []
+  [source]
+    type = ADPFFSource
+    variable = d
+    free_energy = psi
   []
 []
 
@@ -122,8 +133,8 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
   # 热物理属性
   [thermal]
     type = ADGenericConstantMaterial
-    prop_names = 'thermal_conductivity specific_heat density K G'
-    prop_values = '${k_ceramic} ${cp_ceramic} ${rho_ceramic} ${K} ${G}'
+    prop_names = 'thermal_conductivity specific_heat density'
+    prop_values = '${k_ceramic} ${cp_ceramic} ${rho_ceramic}'
   []
   
   # 断裂属性
@@ -150,6 +161,15 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
     parameter_names = 'p a2 a3'
     parameter_values = '2 -0.5 0'
   []
+
+  [psi]
+    type = ADDerivativeParsedMaterial
+    property_name = psi
+    expression = 'alpha*Gc/c0/l+g*psie_active'
+    coupled_variables = 'd '
+    material_property_names = 'alpha(d) g(d) Gc c0 l psie_active(d)'
+    derivative_order = 1
+  []
   
   [eigenstrain]
     type = ADComputeThermalExpansionEigenstrain
@@ -169,11 +189,8 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
     poissons_ratio = nu
     tensile_strength = ft
     fracture_energy = Gc
-    # bulk_modulus = K
-    # shear_modulus = G
     phase_field = d
     degradation_function = g
-    # decomposition = SPECTRAL
     output_properties = 'psie_active'
     outputs = exodus
   []
@@ -183,36 +200,24 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
   []
 []
 
-[MultiApps]
-  [fracture]
-    type = TransientMultiApp
-    input_files = ceramic_fracture_sub.i
-    cli_args = 'Gc=${Gc};a1=${a1};l=${l}'
-    execute_on = 'TIMESTEP_END'
-  []
-[]
-
-[Transfers]
-  [from_d]
-    type = MultiAppGeneralFieldShapeEvaluationTransfer
-    from_multi_app = 'fracture'
-    variable = d
-    source_variable = d
-  []
-  [to_psie_active]
-    type = MultiAppGeneralFieldShapeEvaluationTransfer
-    to_multi_app = 'fracture'
-    variable = psie_active
-    source_variable = psie_active
-  []
-[]
+# [Preconditioning]
+#   [SMP]
+#     type = SMP
+#     full = true
+#     # 确保矩阵完全组装后再进行DIAGONAL缩放
+#     solve_type = 'NEWTON'
+#   []
+# []
 
 [Executioner]
   type = Transient
   
   solve_type = 'NEWTON'
-  petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type'
-  petsc_options_value = '201                hypre    boomeramg'
+  # petsc_options_iname = '-pc_type  -pc_hypre_type -snes_type        -snes_qn_type   -snes_qn_scale_type -snes_linesearch_type'
+  # petsc_options_value = 'hypre   boomeramg         qn               lbfgs           jacobian bt'
+  petsc_options_iname = '-snes_type        -snes_qn_type   -snes_qn_scale_type' 
+  petsc_options_value = 'qn               lbfgs           DIAGONAL'
+
   automatic_scaling = true
   
   nl_rel_tol = 1e-7
@@ -221,14 +226,11 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
   # 时间步长设置
   dt = 0.1e-3  # 小的时间步长以捕捉快速的温度变化
   end_time = 200e-3  # 总模拟时间
-  fixed_point_max_its = 4
-  fixed_point_rel_tol = 1e-5
-  fixed_point_abs_tol = 1e-6
   accept_on_max_fixed_point_iteration = true
 []
 
 [Outputs]
   exodus = true
   print_linear_residuals = false
-  file_base = 'outputs/${l}'
+  file_base = 'outputs/1'
 []

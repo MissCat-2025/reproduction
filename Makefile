@@ -8,17 +8,19 @@
 #
 ###############################################################################
 
-# Set the RACCOON directory
-RACCOON_DIR        ?= $(shell dirname `pwd`)/raccoon
+# 强制设置正确的路径，避免路径冲突
+MOOSE_DIR := $(shell dirname `pwd`)/moose
+RACCOON_DIR := $(shell dirname `pwd`)/raccoon
+
 #
 ###############################################################################
-# Use the MOOSE submodule if it exists and MOOSE_DIR is not set
-MOOSE_SUBMODULE    := $(CURDIR)/moose
-ifneq ($(wildcard $(MOOSE_SUBMODULE)/framework/Makefile),)
-  MOOSE_DIR        ?= $(MOOSE_SUBMODULE)
-else
-  MOOSE_DIR        ?= $(shell dirname `pwd`)/moose
-endif
+# 注释掉MOOSE子模块检测，避免使用raccoon的moose子模块
+# MOOSE_SUBMODULE    := $(CURDIR)/moose
+# ifneq ($(wildcard $(MOOSE_SUBMODULE)/framework/Makefile),)
+#   MOOSE_DIR        ?= $(MOOSE_SUBMODULE)
+# else
+#   MOOSE_DIR        ?= $(shell dirname `pwd`)/moose
+# endif
 
 # framework
 FRAMEWORK_DIR      := $(MOOSE_DIR)/framework
@@ -48,7 +50,7 @@ OPTIMIZATION                := no
 PERIDYNAMICS                := no
 PHASE_FIELD                 := yes
 POROUS_FLOW                 := no
-RAY_TRACING                 := no
+RAY_TRACING                 := yes
 REACTOR                     := no
 RDG                         := no
 RICHARDS                    := no
