@@ -68,6 +68,7 @@ RACCOON_LIB        := yes
 # 添加RACCOON的所有include路径
 ADDITIONAL_INCLUDES += -I$(RACCOON_DIR)/include
 ADDITIONAL_INCLUDES += -I$(RACCOON_DIR)/include/materials/small_deformation_models
+ADDITIONAL_INCLUDES += -I$(RACCOON_DIR)/include/materials/hardening_models
 ADDITIONAL_INCLUDES += -I$(RACCOON_DIR)/include/interfaces
 ADDITIONAL_INCLUDES += -I$(RACCOON_DIR)/include/materials
 ADDITIONAL_INCLUDES += -I$(RACCOON_DIR)/include/kernels

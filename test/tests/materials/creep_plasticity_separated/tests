@@ -1,0 +1,27 @@
+[Tests]
+  [test_creep_plasticity_separated]
+    type = 'CSVDiff'
+    input = 'test_creep_plasticity_separated.i'
+    csvdiff = 'creep_plasticity_separated_out.csv'
+    rel_err = 1e-6
+    abs_zero = 1e-9
+    
+    requirement = 'The system shall be able to simulate creep-plasticity separation using '
+                  'the two-stage return mapping algorithm of Fachinotti et al. (2014).'
+    
+    design = 'SmallDeformationCreepPlasticitySeparatedMod.md'
+    
+    issues = '#XXX'
+    
+    # 这个测试验证两阶段蠕变-塑性分离算法的基本功能
+    # 预期行为：
+    # 1. 初始阶段：弹性变形
+    # 2. 屈服后：塑性变形开始
+    # 3. 长期加载：蠕变效应明显
+    # 4. 塑性和蠕变应变分离更新
+    
+    detail = 'This test validates the two-stage return mapping algorithm for creep-plasticity '
+             'separation. Stage 1 considers creep only (non-plastic trial state), and if '
+             'yielding still occurs, Stage 2 considers plastic-creep coupling.'
+  []
+[] 
