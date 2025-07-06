@@ -24,11 +24,7 @@ void
 J2Plasticity_C::updateState(ADRankTwoTensor & stress,
                                           ADRankTwoTensor & elastic_strain)
 {
-  // 1. 假设没有塑性增量，计算试验状态
-  ADReal delta_ep = 0;
-  elastic_strain -= _plastic_strain_old[_qp];  // 去掉旧的塑性应变
-  stress = _elasticity_model->computeStress(elastic_strain);  // 计算试验应力
-  
+  //从Creep过来的stress、elastic_strain已经是试应力张量和试应变张量了
   // 2. 计算流动方向 (Prandtl-Reuss流动准则)
   ADRankTwoTensor stress_dev = stress.deviatoric();  // 偏应力
   ADReal stress_dev_norm = std::sqrt(1.5 * stress_dev.doubleContraction(stress_dev));

@@ -4,18 +4,19 @@
 
 #pragma once
 
-#include "SmallDeformationCreepModelMod.h"
+#include "CreepModel.h"
 
-class SmallDeformationJ2CreepMod : public SmallDeformationCreepModelMod
+class J2Creep_P : public CreepModel
 {
 public:
   static InputParameters validParams();
 
-  SmallDeformationJ2CreepMod(const InputParameters & parameters);
+  J2Creep_P(const InputParameters & parameters);
 
   virtual void updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elastic_strain) override;
 
 protected:
+
   virtual ADReal computeResidual(const ADReal & effective_trial_stress,
                                  const ADReal & delta_ec) override;
 
@@ -24,4 +25,6 @@ protected:
 
   virtual Real computeReferenceResidual(const ADReal & effective_trial_stress,
                                         const ADReal & delta_ec) override;
+  //判断非塑性应变下是否满足区分条件
+  bool f_no_plastic_strain(const GenericRankFourTensor<true> & elasticity_tensor);
 };

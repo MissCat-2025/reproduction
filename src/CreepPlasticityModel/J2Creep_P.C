@@ -38,26 +38,30 @@ J2Creep_P::updateState(ADRankTwoTensor & stress,
   // 3. 检查屈服条件
   returnMappingSolve(stress_dev_norm, delta_ec, _console);  // 牛顿迭代求解
   // 5. 试应变-蠕变增量=弹性应变
-  elastic_strain -= delta_ec * _Np[_qp];
+  elastic_strain2 =elastic_strain- delta_ec * _Np[_qp];
   //弹性应变计算出对应的弹性应力
-  stress2 = _elasticity_model->computeStress(elastic_strain);
+  stress2 = _elasticity_model->computeStress(elastic_strain2);
   // 计算流动方向
   ADRankTwoTensor stress_dev2 = stress2.deviatoric();  // 偏应力
   ADReal stress_dev_norm2 = std::sqrt(1.5 * stress_dev2.doubleContraction(stress_dev2));//有效试应力σ{tria}_eff
   _Np[_qp] = 1.5 * stress_dev2 / stress_dev_norm2;  // 流动方向
 
   ADReal phi = computeResidual(stress_dev_norm2, delta_ec);  // 残差 = f(σ,εp)
-  if (phi > 0)  // 如果屈服
-    _creep_model->updateState(stress, _elastic_strain[_qp]);
-    
-  // 4. 更新状态变量
-  _ep[_qp] = _ep_old[_qp] + delta_ep;
-  _plastic_strain[_qp] = _plastic_strain_old[_qp] + delta_ep * _Np[_qp];
+ 
+  if (phi > 0)
+  {
+    _plastic_model->updateState(stress, elastic_strain);
+  }  // 如果屈服
+  else
+  {
+    // 4. 更新状态变量
+    _ec[_qp] = _ec_old[_qp] + delta_ec;
+    _creep_strain[_qp] = _creep_strain_old[_qp] + delta_ec * _Np[_qp];
+    // 5. 更新最终应力
+    elastic_strain3 = elastic_strain2- delta_ec * _Np[_qp];
+    stress3 = _elasticity_model->computeStress(elastic_strain3);
+  }
   
-  // 5. 更新最终应力
-  elastic_strain -= delta_ep * _Np[_qp];
-  stress = _elasticity_model->computeStress(elastic_strain);
-  _hardening_model->plasticEnergy(_ep[_qp]);
 }
 
 Real
