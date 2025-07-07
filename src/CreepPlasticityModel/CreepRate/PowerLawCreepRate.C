@@ -9,7 +9,7 @@ registerMooseObject("reproductionApp", PowerLawCreepRate);
 InputParameters
 PowerLawCreepRate::validParams()
 {
-  InputParameters params = J2Creep_P::validParams();
+  InputParameters params = J2CreepPlasticity::validParams();
   params.addClassDescription("Power law creep rate model: dot_epsilon_c_eq = A * sigma_eq^n");
   
   params.addRequiredParam<Real>("A", "Material constant A in power law creep model");
@@ -19,7 +19,7 @@ PowerLawCreepRate::validParams()
 }
 
 PowerLawCreepRate::PowerLawCreepRate(const InputParameters & parameters)
-  : J2Creep_P(parameters),
+  : J2CreepPlasticity(parameters),
     _A(getParam<Real>("A")),
     _n(getParam<Real>("n"))
 {

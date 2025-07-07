@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "J2Creep_P.h"
+#include "J2CreepPlasticity.h"
 
-class PowerLawCreepRate : public J2Creep_P
+class PowerLawCreepRate : public J2CreepPlasticity
 {
 public:
   static InputParameters validParams();

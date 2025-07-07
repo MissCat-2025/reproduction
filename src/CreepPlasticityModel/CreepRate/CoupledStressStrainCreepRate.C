@@ -9,7 +9,7 @@ registerMooseObject("reproductionApp", CoupledStressStrainCreepRate);
 InputParameters
 CoupledStressStrainCreepRate::validParams()
 {
-  InputParameters params = J2Creep_P::validParams();
+  InputParameters params = J2CreepPlasticity::validParams();
   params.addClassDescription("Coupled stress-strain creep rate model: "
                             "dot_epsilon_c_eq = A1*sigma_eq^n1*epsilon_c_eq^m1 + "
                             "A2*sigma_eq^n2*epsilon_c_eq^m2 + A3*sigma_eq^n3*epsilon_c_eq^m3");
@@ -31,7 +31,7 @@ CoupledStressStrainCreepRate::validParams()
 }
 
 CoupledStressStrainCreepRate::CoupledStressStrainCreepRate(const InputParameters & parameters)
-  : J2Creep_P(parameters),
+  : J2CreepPlasticity(parameters),
     _A1(getParam<Real>("A1")),
     _n1(getParam<Real>("n1")),
     _m1(getParam<Real>("m1")),
@@ -51,6 +51,7 @@ CoupledStressStrainCreepRate::computeCreepRate(const ADReal & effective_stress, 
   // dot_epsilon_c_eq = A1*sigma_eq^n1*epsilon_c_eq^m1 + A2*sigma_eq^n2*epsilon_c_eq^m2 + A3*sigma_eq^n3*epsilon_c_eq^m3
   
   // 避免数值问题，设置最小值
+  // ADReal effective_stressMpa = effective_stress/1e6;
   ADReal sigma_eq = (effective_stress <= 1e-12) ? 1e-12 : effective_stress;
   ADReal epsilon_c_eq = (effective_creep_strain <= 1e-12) ? 1e-12 : effective_creep_strain;
   
@@ -69,7 +70,7 @@ CoupledStressStrainCreepRate::computeCreepRateStressDerivative(const ADReal & ef
   // d(dot_epsilon_c_eq)/d(sigma_eq) = A1*n1*sigma_eq^(n1-1)*epsilon_c_eq^m1 + 
   //                                   A2*n2*sigma_eq^(n2-1)*epsilon_c_eq^m2 + 
   //                                   A3*n3*sigma_eq^(n3-1)*epsilon_c_eq^m3
-  
+  // ADReal effective_stressMpa = effective_stress/1e6;
   if (effective_stress <= 1e-12)
     return 0.0;
   
@@ -92,7 +93,7 @@ CoupledStressStrainCreepRate::computeCreepRateStrainDerivative(const ADReal & ef
   // d(dot_epsilon_c_eq)/d(epsilon_c_eq) = A1*m1*sigma_eq^n1*epsilon_c_eq^(m1-1) + 
   //                                        A2*m2*sigma_eq^n2*epsilon_c_eq^(m2-1) + 
   //                                        A3*m3*sigma_eq^n3*epsilon_c_eq^(m3-1)
-  
+  // ADReal effective_stress = effective_stress/1e6;
   if (effective_creep_strain <= 1e-12)
     return 0.0;
   

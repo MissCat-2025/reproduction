@@ -81,3 +81,18 @@ PlasticityModel::getPlasticStrainOld() const
 {
   return _plastic_strain_old[_qp];
 }
+
+void
+PlasticityModel::setPlasticStrainState(const ADReal & delta_ep, const ADRankTwoTensor & flow_direction)
+{
+  // 手动设置塑性应变状态，用于蠕变-塑性耦合算法中避免循环调用
+  
+  // 更新有效塑性应变
+  _ep[_qp] = _ep_old[_qp] + delta_ep;
+  
+  // 更新塑性应变张量
+  _plastic_strain[_qp] = _plastic_strain_old[_qp] + delta_ep * flow_direction;
+  
+  // 更新流动方向
+  _Np[_qp] = flow_direction;
+}

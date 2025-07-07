@@ -7,9 +7,9 @@
 #include "Material.h"
 #include "ADRankTwoTensorForward.h"
 #include "BaseNameInterface.h"
-
-class SmallDeformationElasticityModelMod;
-class SmallDeformationPlasticityModelMod;
+// ✅ 前向声明 - 因为只需要指针
+class SmallDeformationElasticityModelMod;// 前向声明
+class SmallDeformationPlasticityModelMod;// 前向声明
 
 /**
  * ComputeSmallDeformationStressMod computes the stress under small-strain assumptions
@@ -28,10 +28,10 @@ protected:
   virtual void computeQpProperties() override;
 
   /// The elasticity model
-  SmallDeformationElasticityModelMod * _elasticity_model;
+  SmallDeformationElasticityModelMod * _elasticity_model; // 只需要指针，前向声明足够
 
   /// The plasticity model
-  SmallDeformationPlasticityModelMod * _plasticity_model;
+  SmallDeformationPlasticityModelMod * _plasticity_model; // 只需要指针，前向声明足够
 
   /// The mechanical strain excluding eigen strains from the total strain
   const ADMaterialProperty<RankTwoTensor> & _mechanical_strain;

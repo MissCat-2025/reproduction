@@ -3,8 +3,6 @@
 //* http://dolbow.pratt.duke.edu
 
 #include "J2Plasticity_C.h"
-#include "CreepModel.h"
-#include "J2Creep_P.h"
 
 registerMooseObject("reproductionApp", J2Plasticity_C);
 
@@ -63,9 +61,8 @@ ADReal
 J2Plasticity_C::computeResidual(const ADReal & effective_trial_stress,
                                               const ADReal & delta_ep)
 {
-  // F_3 (Δε_eq^pl) = σ_eq^el - C(Δε_eq^pl N) - C(g(σ_Y (ε_eq_0^pl + Δε_eq^pl))Δt) - σ_Y (ε_eq_0^pl + Δε_eq^pl)
-  // 这个塑性是专门给蠕变准备的，因此需要考虑蠕变，需要计算的残差如上。
-  // 其他特别注意需要调用蠕变模型的蠕变率g(x)，即computeCreepRate((σ_Y (ε_eq_0^pl + Δε_eq^pl)))
+  // 简化的J2塑性残差计算，不再考虑蠕变耦合
+  // 因为蠕变-塑性耦合已经在蠕变模型中完成
   
   // 计算当前的有效塑性应变
   ADReal ep_current = _ep_old[_qp] + delta_ep;
@@ -73,42 +70,19 @@ J2Plasticity_C::computeResidual(const ADReal & effective_trial_stress,
   // 计算当前的屈服应力
   ADReal yield_stress = _hardening_model->plasticEnergy(ep_current, 1);
   
-  // 计算第一项：σ_eq^el - C(Δε_eq^pl N)
+  // 标准的J2塑性残差：σ_eq^el - C(Δε_eq^pl N) - σ_Y
   ADReal elastic_term = effective_trial_stress - 
                        _elasticity_model->computeStress(delta_ep * _Np[_qp]).doubleContraction(_Np[_qp]);
   
-  // 计算蠕变项：C(g(σ_Y, ε_c)Δt)
-  ADReal creep_term = 0.0;
-  if (_creep_model)
-  {
-    // 获取蠕变率 g(σ_Y, ε_c)
-    J2Creep_P * j2_creep_model = dynamic_cast<J2Creep_P *>(_creep_model);
-    if (j2_creep_model)
-    {
-      // 获取当前蠕变应变 - 从蠕变模型获取
-      ADReal current_creep_strain = j2_creep_model->getEffectiveCreepStrain();
-      ADReal creep_rate = j2_creep_model->getCreepRate(yield_stress, current_creep_strain);
-      creep_term = _elasticity_model->computeStress(_Np[_qp]*creep_rate * _dt).doubleContraction(_Np[_qp]);
-    }
-  }
-  
-  // 计算完整的残差
-  return elastic_term - creep_term - yield_stress;
+  // 返回简化的残差（不包含蠕变项）
+  return elastic_term - yield_stress;
 }
 
 ADReal
 J2Plasticity_C::computeDerivative(const ADReal & /*effective_trial_stress*/,
                                                 const ADReal & delta_ep)
 {
-  // 对残差 F_3 (Δε_eq^pl) = σ_eq^el - C(Δε_eq^pl N) - C(g(σ_Y (ε_eq_0^pl + Δε_eq^pl), ε_c)Δt) - σ_Y (ε_eq_0^pl + Δε_eq^pl)
-  // 完整的导数推导：
-  // ∂F_3/∂(Δε_eq^pl) = -C - C(∂g/∂σ_Y * ∂σ_Y/∂(Δε_eq^pl) + ∂g/∂ε_c * ∂ε_c/∂(Δε_eq^pl))Δt - ∂σ_Y/∂(Δε_eq^pl)
-  // 
-  // 由于蠕变应变ε_c和塑性应变增量Δε_eq^pl是独立的状态变量，所以：
-  // ∂ε_c/∂(Δε_eq^pl) = 0
-  // 
-  // 因此简化为：
-  // ∂F_3/∂(Δε_eq^pl) = -C - C(∂g/∂σ_Y * ∂σ_Y/∂(Δε_eq^pl))Δt - ∂σ_Y/∂(Δε_eq^pl)
+  // 简化的J2塑性导数计算，不再考虑蠕变耦合
   
   // 计算当前的有效塑性应变
   ADReal ep_current = _ep_old[_qp] + delta_ep;
@@ -119,28 +93,6 @@ J2Plasticity_C::computeDerivative(const ADReal & /*effective_trial_stress*/,
   // 计算硬化模型的导数 ∂σ_Y/∂(Δε_eq^pl)
   ADReal hardening_derivative = _hardening_model->plasticEnergy(ep_current, 2);
   
-  // 计算蠕变项的导数
-  ADReal creep_derivative = 0.0;
-  if (_creep_model)
-  {
-    J2Creep_P * j2_creep_model = dynamic_cast<J2Creep_P *>(_creep_model);
-    if (j2_creep_model)
-    {
-      // 计算当前屈服应力
-      ADReal yield_stress = _hardening_model->plasticEnergy(ep_current, 1);
-      
-      // 获取当前蠕变应变
-      ADReal current_creep_strain = j2_creep_model->getEffectiveCreepStrain();
-      
-      // 获取蠕变率对应力的导数 ∂g/∂σ_Y
-      ADReal dg_dsigma = j2_creep_model->getCreepRateStressDerivative(yield_stress, current_creep_strain);
-      
-      // 蠕变项的导数：C(∂g/∂σ_Y * ∂σ_Y/∂(Δε_eq^pl))Δt
-      // 注意：∂g/∂ε_c * ∂ε_c/∂(Δε_eq^pl) = 0，因为蠕变应变不直接依赖于塑性应变增量
-      creep_derivative = elastic_coeff * dg_dsigma * hardening_derivative * _dt;
-    }
-  }
-  
-  // 返回完整的导数
-  return -elastic_coeff - creep_derivative - hardening_derivative;
+  // 返回简化的导数（不包含蠕变项）
+  return -elastic_coeff - hardening_derivative;
 }

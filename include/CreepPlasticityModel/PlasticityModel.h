@@ -52,6 +52,13 @@ public:
    */
   virtual const RankTwoTensor & getPlasticStrainOld() const;
 
+  /**
+   * Manually set the plastic strain state (used by creep-plasticity coupling to avoid circular calls)
+   * @param delta_ep The increment of effective plastic strain
+   * @param flow_direction The plastic flow direction
+   */
+  virtual void setPlasticStrainState(const ADReal & delta_ep, const ADRankTwoTensor & flow_direction);
+
   // @{ Retained as empty methods to avoid a warning from Material.C in framework. These methods are
   // unused in all inheriting classes and should not be overwritten.
   void resetQpProperties() final {}

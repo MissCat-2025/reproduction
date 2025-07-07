@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "J2Creep_P.h"
+#include "J2CreepPlasticity.h"
 
-class CoupledStressStrainCreepRate : public J2Creep_P
+class CoupledStressStrainCreepRate : public J2CreepPlasticity
 {
 public:
   static InputParameters validParams();
