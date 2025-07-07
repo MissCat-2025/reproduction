@@ -2,8 +2,6 @@
 //* being developed at Dolbow lab at Duke University
 //* http://dolbow.pratt.duke.edu
 
-#include "PlasticityModel.h"
-#include "ElasticityModel.h"
 #include "CreepModel.h"
 
 InputParameters
@@ -27,7 +25,7 @@ CreepModel::CreepModel(const InputParameters & parameters)
         getMaterialPropertyOldByName<RankTwoTensor>(prependBaseName("creep_strain"))),
     _ec(declareADProperty<Real>(prependBaseName("effective_creep_strain"))),
     _ec_old(getMaterialPropertyOldByName<Real>(prependBaseName("effective_creep_strain"))),
-    _Np(declareADProperty<RankTwoTensor>(prependBaseName("flow_direction")))
+    _Nc(declareADProperty<RankTwoTensor>(prependBaseName("Creep_flow_direction")))
 {
 }
 

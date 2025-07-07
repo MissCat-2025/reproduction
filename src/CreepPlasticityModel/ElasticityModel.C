@@ -37,6 +37,10 @@ void
 ElasticityModel::setCreepModel(
     CreepModel * creep_model)
 {
+  /*
+  可调用 CreepModel 的 公共函数
+  不能直接访问 CreepModel 的私有/保护成员变量
+*/
   _creep_model = creep_model;
   _creep_model->setElasticityModel(this);
 }

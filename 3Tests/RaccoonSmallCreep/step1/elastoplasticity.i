@@ -1,4 +1,4 @@
-#  mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i elastoplasticity.i
+#  mpirun -n 8 /home/yp/projects/reproduction/reproduction-opt -i elastoplasticity.i
 #Phase-field fracture modeling for creep crack
 #4.1. Uniaxial tension model
 
@@ -13,18 +13,6 @@ nu = 0.3
 sigma_0 = 170e6 #Pa
 psic = '${fparse E*Gc/sigma_0/sigma_0}'
 H = '${fparse E/100}'
-
-# A1 = 4.33e-32
-# n1 = 10.08
-# m1 = -0.633
-
-# A2 = 3.6e-25
-# n2 = 8.9
-# m2 = 1.7
-
-# A3 = 1.5e-25
-# n3 = 10
-# m3 = 3.9
 
 
 Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
@@ -140,7 +128,7 @@ Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
     phase_field = d
   []
   [hencky]
-    type = SmallDeformationIsotropicElasticityThresholdMod
+    type = IsotropicElasticityThreshold
     youngs_modulus = E
     poissons_ratio = nu
     phase_field = d
@@ -162,17 +150,20 @@ Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
   [strain]
     type = ADComputeSmallStrain
   []
-  [creep_model]
-    type = SmallDeformationAsigmaNstrainM
+  # [plasticity]
+  #   type = J2Plasticity_C
+  #   hardening_model = linear_hardening
+  #   output_properties = 'effective_plastic_strain'
+  #   outputs = exodus
+  # []
+  [creep]
+    type = CoupledStressStrainCreepRate
     hardening_model = linear_hardening
-    relative_tolerance = 1e-5
-    absolute_tolerance = 1e-5
-    # initial_creep_strain = 1e-10
   []
   [stress]
-    type = ComputeSmallDeformationStressMod
+    type = ComputeCreepPlasticityDeformationStress
     elasticity_model = hencky
-    plasticity_model = creep_model
+    creep_model = creep
   []
 []
 
@@ -204,24 +195,24 @@ Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
     variable = d
     execute_on = 'INITIAL TIMESTEP_END'
   []
-  [ep]
-    type = ADElementAverageMaterialProperty
-    mat_prop = effective_plastic_strain
-    execute_on = 'INITIAL TIMESTEP_END'
-  []
+  # [ep]
+  #   type = ADElementAverageMaterialProperty
+  #   mat_prop = effective_plastic_strain
+  #   execute_on = 'INITIAL TIMESTEP_END'
+  # []
 []
 
 [Executioner]
   type = Transient
 
   solve_type = NEWTON
-  petsc_options_iname = '-pc_type'
-  petsc_options_value = 'lu'
+  petsc_options_iname = '-pc_type -pc_factor_mat_solver_type'
+  petsc_options_value = 'lu superlu_dist'
 
   nl_rel_tol = 1e-12
   nl_abs_tol = 1e-12
   nl_max_its = 50
-  dt = 3600
+  dt = 1
   end_time = 86400
 
   automatic_scaling = true

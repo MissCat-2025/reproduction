@@ -1,0 +1,31 @@
+//* This file is part of the RACCOON application
+//* being developed at Dolbow lab at Duke University
+//* http://dolbow.pratt.duke.edu
+
+#pragma once
+
+#include "J2Creep_P.h"
+
+class PowerLawCreepRate : public J2Creep_P
+{
+public:
+  static InputParameters validParams();
+
+  PowerLawCreepRate(const InputParameters & parameters);
+
+protected:
+  /// Compute creep rate using power law: dot_epsilon_c_eq = A * sigma_eq^n
+  virtual ADReal computeCreepRate(const ADReal & effective_stress, const ADReal & effective_creep_strain) override;
+  
+  /// Compute derivative of creep rate with respect to effective stress
+  virtual ADReal computeCreepRateStressDerivative(const ADReal & effective_stress, const ADReal & effective_creep_strain) override;
+  
+  /// Compute derivative of creep rate with respect to effective creep strain (zero for power law)
+  virtual ADReal computeCreepRateStrainDerivative(const ADReal & effective_stress, const ADReal & effective_creep_strain) override;
+
+  /// Material constant A in power law creep model
+  const Real _A;
+  
+  /// Material constant n in power law creep model
+  const Real _n;
+}; 

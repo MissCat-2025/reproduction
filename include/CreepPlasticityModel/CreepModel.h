@@ -60,5 +60,5 @@ protected:
   const MaterialProperty<Real> & _ec_old;
 
   /// The flow direction
-  ADMaterialProperty<RankTwoTensor> & _Np;
+  ADMaterialProperty<RankTwoTensor> & _Nc;
 };

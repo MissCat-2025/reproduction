@@ -2,11 +2,11 @@
 //* being developed at Dolbow lab at Duke University
 //* http://dolbow.pratt.duke.edu
 
-#include "SmallDeformationPlasticityModelCreep.h"
-#include "SmallDeformationElasticityModelCreep.h"
+#include "PlasticityModel.h"
+#include "ElasticityModel.h"
 
 InputParameters
-SmallDeformationPlasticityModelCreep::validParams()
+PlasticityModel::validParams()
 {
   InputParameters params = Material::validParams();
   params += ADSingleVariableReturnMappingSolution::validParams();
@@ -20,7 +20,7 @@ SmallDeformationPlasticityModelCreep::validParams()
   return params;
 }
 
-SmallDeformationPlasticityModelCreep::SmallDeformationPlasticityModelCreep(const InputParameters & parameters)
+PlasticityModel::PlasticityModel(const InputParameters & parameters)
   : Material(parameters),
     ADSingleVariableReturnMappingSolution(parameters),
     BaseNameInterface(parameters),
@@ -29,12 +29,13 @@ SmallDeformationPlasticityModelCreep::SmallDeformationPlasticityModelCreep(const
         getMaterialPropertyOldByName<RankTwoTensor>(prependBaseName("plastic_strain"))),
     _ep(declareADProperty<Real>(prependBaseName("effective_plastic_strain"))),
     _ep_old(getMaterialPropertyOldByName<Real>(prependBaseName("effective_plastic_strain"))),
-    _Np(declareADProperty<RankTwoTensor>(prependBaseName("flow_direction")))
+    _Np(declareADProperty<RankTwoTensor>(prependBaseName("plastic_flow_direction"))),
+    _creep_model(nullptr)
 {
 }
 
 void
-SmallDeformationPlasticityModelCreep::initialSetup()
+PlasticityModel::initialSetup()
 {
   _hardening_model = dynamic_cast<PlasticHardeningModel *>(&getMaterial("hardening_model"));
   if (!_hardening_model)
@@ -44,22 +45,39 @@ SmallDeformationPlasticityModelCreep::initialSetup()
 }
 
 void
-SmallDeformationPlasticityModelCreep::setQp(unsigned int qp)
+PlasticityModel::setQp(unsigned int qp)
 {
   _qp = qp;
   _hardening_model->setQp(qp);
 }
 
 void
-SmallDeformationPlasticityModelCreep::setElasticityModel(
-    SmallDeformationElasticityModelCreep * elasticity_model)
+PlasticityModel::setElasticityModel(ElasticityModel * elasticity_model)
 {
   _elasticity_model = elasticity_model;
 }
 
 void
-SmallDeformationPlasticityModelCreep::initQpStatefulProperties()
+PlasticityModel::setCreepModel(CreepModel * creep_model)
+{
+  _creep_model = creep_model;
+}
+
+void
+PlasticityModel::initQpStatefulProperties()
 {
   _plastic_strain[_qp].zero();
   _ep[_qp] = 0;
+}
+
+Real
+PlasticityModel::getEffectivePlasticStrainOld() const
+{
+  return _ep_old[_qp];
+}
+
+const RankTwoTensor &
+PlasticityModel::getPlasticStrainOld() const
+{
+  return _plastic_strain_old[_qp];
 }

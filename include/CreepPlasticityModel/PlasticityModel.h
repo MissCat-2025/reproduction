@@ -11,6 +11,7 @@
 #include "PlasticHardeningModel.h"
 
 class ElasticityModel;
+class CreepModel;
 
 class PlasticityModel : public Material,
                                         public ADSingleVariableReturnMappingSolution,
@@ -29,12 +30,27 @@ public:
   /// Set the associated elasticity model
   virtual void setElasticityModel(ElasticityModel * elasticity_model);
 
+  /// Set the associated creep model
+  virtual void setCreepModel(CreepModel * creep_model);
+
   /**
    * Update the stress and elastic strain if need to following the specified plastic flow
    * @param stress         The stress
    * @param elastic_strain The elastic strain
    */
   virtual void updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elastic_strain) = 0;
+
+  /**
+   * Get the effective plastic strain from the previous time step
+   * @return The effective plastic strain at the current quadrature point
+   */
+  virtual Real getEffectivePlasticStrainOld() const;
+
+  /**
+   * Get the plastic strain tensor from the previous time step
+   * @return The plastic strain tensor at the current quadrature point
+   */
+  virtual const RankTwoTensor & getPlasticStrainOld() const;
 
   // @{ Retained as empty methods to avoid a warning from Material.C in framework. These methods are
   // unused in all inheriting classes and should not be overwritten.
@@ -47,6 +63,9 @@ protected:
 
   /// The elasticity model
   ElasticityModel * _elasticity_model;
+
+  /// The creep model
+  CreepModel * _creep_model;
 
   /// The plastic strain
   ADMaterialProperty<RankTwoTensor> & _plastic_strain;
