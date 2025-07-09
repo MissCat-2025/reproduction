@@ -4,6 +4,7 @@
 
 #include "J2CreepPlasticity.h"
 #include "PlasticityModel.h"
+#include "PlasticHardeningModel.h"
 #include "ElasticityModel.h"
 registerMooseObject("reproductionApp", J2CreepPlasticity);
 
@@ -13,9 +14,9 @@ J2CreepPlasticity::validParams()
   InputParameters params = CreepModel::validParams();
   params.addClassDescription("J2 creep model with plasticity check. Implements the algorithm "
                              "for separated creep and plasticity with radial return mapping.");
-  //塑性
-  params.addRequiredParam<MaterialName>("plasticity_model", "Name of the plasticity model");
-  params.addRequiredParam<MaterialName>("hardening_model", "Name of the plastic hardening model for yield stress calculation");
+  //塑性 (可选)
+  params.addParam<MaterialName>("plasticity_model", "Name of the plasticity model (optional)");
+  params.addParam<MaterialName>("hardening_model", "Name of the plastic hardening model (required when plasticity_model is provided)");
   
   // 牛顿迭代参数
   params.addParam<int>("max_iter", 1000, "Maximum number of iterations for Newton-Raphson solve");
@@ -44,6 +45,7 @@ J2CreepPlasticity::J2CreepPlasticity(const InputParameters & parameters) :
   _psic_name(prependBaseName("creep_energy_density", true)),
   _psic(declareADProperty<Real>(_psic_name)),
   _psic_active(declareADProperty<Real>(_psic_name + "_active")),
+  _psic_active_old(getMaterialPropertyOld<Real>(_psic_name + "_active")),
   _dpsic_dd(declareADProperty<Real>(derivativePropertyName(_psic_name, {_d_name}))),
   
   // 获取降解函数及其导数
@@ -55,16 +57,26 @@ J2CreepPlasticity::J2CreepPlasticity(const InputParameters & parameters) :
 void
 J2CreepPlasticity::initialSetup()
 {
-  _hardening_model = dynamic_cast<PlasticHardeningModel *>(&getMaterial("hardening_model"));
-  if (!_hardening_model)
-    paramError("hardening_model",
-               "Plastic hardening model " + getParam<MaterialName>("hardening_model") +
-                   " is not compatible with " + name());
-  _plasticity_model = dynamic_cast<PlasticityModel *>(&getMaterial("plasticity_model"));
-  if (!_plasticity_model)
-    paramError("plasticity_model",
-               "Plasticity model " + getParam<MaterialName>("plasticity_model") +
-                   " is not compatible with " + name());
+  // 塑性模型是可选的
+  if (isParamValid("plasticity_model"))
+  {
+    _plasticity_model = dynamic_cast<PlasticityModel *>(&getMaterial("plasticity_model"));
+    if (!_plasticity_model)
+      paramError("plasticity_model",
+                 "Plasticity model " + getParam<MaterialName>("plasticity_model") +
+                     " is not compatible with " + name());
+    
+    // 如果提供了塑性模型，则需要硬化模型
+    if (!isParamValid("hardening_model"))
+      paramError("hardening_model",
+                 "Hardening model must be provided when plasticity_model is specified");
+    
+    _hardening_model = dynamic_cast<PlasticHardeningModel *>(&getMaterial("hardening_model"));
+    if (!_hardening_model)
+      paramError("hardening_model",
+                 "Hardening model " + getParam<MaterialName>("hardening_model") +
+                     " is not compatible with " + name());
+  }
 }
 
 void
@@ -73,12 +85,13 @@ J2CreepPlasticity::setQp(unsigned int qp)
   // 调用基类的setQp方法
   CreepModel::setQp(qp);
   
-  // 设置硬化模型的qp
-  if (_hardening_model)
-    _hardening_model->setQp(qp);
   // 设置塑性模型的qp
   if (_plasticity_model)
     _plasticity_model->setQp(qp);
+  
+  // 设置硬化模型的qp
+  if (_hardening_model)
+    _hardening_model->setQp(qp);
 }
 
 void
@@ -139,44 +152,57 @@ J2CreepPlasticity::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elast
     _Nc[_qp].zero();
   
   // Step 3: 检查屈服条件
-  if (!_plasticity_model || f_no_plastic_strain(effective_stress_np))
+  if (!_plasticity_model || !_hardening_model || f_no_plastic_strain(effective_stress_np))
   {
-    // 情况1：没有塑性模型 或 不屈服，只有蠕变
+    // 情况1：没有塑性模型或硬化模型，或不屈服，只有蠕变
     _creep_strain[_qp] = creep_strain_np;
     _ec[_qp] = ec_np;
     elastic_strain = elastic_strain_np;
     stress = stress_np;
+    
+    // 如果有硬化模型但不屈服，仍需要更新塑性应变能（使用旧的塑性应变）
+    if (_plasticity_model && _hardening_model)
+    {
+      Real ep_current = _plasticity_model->getEffectivePlasticStrainOld();
+      _hardening_model->plasticEnergy(ep_current, 0);
+    }
   }  
   else
   {
-    // 情况2：屈服，需要塑性-蠕变耦合求解
+    // 情况2：有塑性模型且屈服，需要塑性-蠕变耦合求解
     // 根据论文算法，求解F3方程：
     // F3(Δε_eq^pl) = σ_eq^el - C(Δε_eq^pl N) - C(g(σ_Y(ε_eq0^pl + Δε_eq^pl))Δt) - σ_Y(ε_eq0^pl + Δε_eq^pl)
     
     solveCreepPlasticityCoupled(stress, elastic_strain, elastic_trial_strain, 
                                 effective_stress_trial, delta_ec, creep_strain_np, ec_np);
+    // 注意：塑性应变能在solveCreepPlasticityCoupled中已经更新
   }
     
-  // 更新输出属性
   // 更新输出属性
   // 输出有效蠕变应变（标量）
   _effective_creep_strain[_qp] = _ec[_qp];
   
-  // 计算蠕变能量密度：总应变能 - 弹性能 - 塑性能
-  ADReal total_strain_energy = 0.5 * stress.doubleContraction(elastic_strain + _creep_strain[_qp]);
-  ADReal elastic_energy = 0.5 * stress.doubleContraction(elastic_strain);
-  ADReal plastic_energy = 0.0;
+  // 计算蠕变能量密度：基于有效应力与有效蠕变应变的积分
+  // 对于J2蠕变，蠕变能密度 W_c = ∫ σ_eq * dε_eq^c
+  // 在增量形式下，使用梯形积分规则：W_c = W_c_old + 0.5 * (σ_eq_old + σ_eq) * Δε_eq^c
   
-  // 获取塑性能量密度
-  if (_plasticity_model)
-  {
-    // 通过硬化模型获取塑性能量密度
-    Real ep_current = _plasticity_model->getEffectivePlasticStrainOld();
-    plastic_energy = _hardening_model->plasticEnergy(ep_current, 0);
-  }
+  // 计算当前的有效应力
+  stress_dev = stress.deviatoric();
+  ADReal effective_stress = std::sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
   
-  // 蠕变能量密度 = 总应变能 - 弹性能 - 塑性能
-  ADReal creep_energy = total_strain_energy - elastic_energy - plastic_energy;
+  // 计算蠕变应变增量
+  ADReal delta_ec_total = _ec[_qp] - _ec_old[_qp];
+  
+  // 获取旧的蠕变能量密度
+  ADReal creep_energy_old = _psic_active_old[_qp];
+  
+  // 蠕变能量密度的增量计算
+  // 对于小增量，使用简化的矩形积分：W_c += σ_eq * Δε_eq^c
+  // 对于更精确的计算，可以使用梯形积分或其他数值积分方法
+  ADReal creep_energy_increment = effective_stress * delta_ec_total;
+  
+  // 确保蠕变能量密度非负（物理要求）
+  ADReal creep_energy = creep_energy_old + std::max(0.0, raw_value(creep_energy_increment));
   
   // 设置蠕变能量密度
   _psic_active[_qp] = creep_energy;
@@ -187,16 +213,15 @@ J2CreepPlasticity::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elast
 bool
 J2CreepPlasticity::f_no_plastic_strain(const ADReal & effective_stress)
 {
-  // 获取屈服应力（通过硬化模型）
-  if (!_hardening_model)
-    return true; // 没有硬化模型，只有蠕变
+  // 如果没有塑性模型，只有蠕变
+  if (!_plasticity_model || !_hardening_model)
+    return true;
   
-  // 通过硬化模型获取屈服应力
+  // 通过自己的硬化模型获取屈服应力
   // 使用上一步的塑性应变进行硬化计算
-  Real ep_old_value = 0.0;  // 默认值
-  if (_plasticity_model)
-    ep_old_value = _plasticity_model->getEffectivePlasticStrainOld();
+  Real ep_old_value = _plasticity_model->getEffectivePlasticStrainOld();
   
+  // 通过硬化模型获取当前屈服应力
   ADReal yield_stress = _hardening_model->plasticEnergy(ep_old_value, 1);
   
   // 屈服函数: f = σ_eq - σ_Y
@@ -406,6 +431,10 @@ J2CreepPlasticity::solveCreepPlasticityCoupled(ADRankTwoTensor & stress,
   
   // 6. 手动更新塑性模型的状态变量（避免调用updateState）
   updatePlasticityModelState(delta_ep);
+  
+  // 7. 更新塑性应变能
+  // 使用最终的塑性应变值来计算塑性应变能
+  _hardening_model->plasticEnergy(ep_final, 0);
 }
 
 void

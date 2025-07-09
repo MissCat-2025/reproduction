@@ -5,10 +5,10 @@
 #pragma once
 
 #include "CreepModel.h"
-#include "PlasticHardeningModel.h"
 #include "DerivativeMaterialPropertyNameInterface.h"
 
 class PlasticityModel;  // 前向声明
+class PlasticHardeningModel;  // 前向声明
 
 class J2CreepPlasticity : public CreepModel,
                           public DerivativeMaterialPropertyNameInterface
@@ -34,10 +34,10 @@ protected:
 
   virtual Real computeReferenceResidual(const ADReal & effective_trial_stress,
                                         const ADReal & delta_ec) override;
-  //判断非塑性应变下是否满足区分条件
+  //判断非塑性应变下是否满足区分条件（仅在有塑性模型时使用）
   bool f_no_plastic_strain(const ADReal & effective_stress);
   
-  /// 求解塑性-蠕变耦合问题（避免循环调用）
+  /// 求解塑性-蠕变耦合问题（仅在有塑性模型时使用）
   void solveCreepPlasticityCoupled(ADRankTwoTensor & stress, 
                                    ADRankTwoTensor & elastic_strain,
                                    const ADRankTwoTensor & elastic_trial_strain,
@@ -46,7 +46,7 @@ protected:
                                    const ADRankTwoTensor & creep_strain_np,
                                    const ADReal & ec_np);
   
-  /// 手动更新塑性模型状态变量（避免循环调用）
+  /// 手动更新塑性模型状态变量（仅在有塑性模型时使用）
   void updatePlasticityModelState(const ADReal & delta_ep);
   
   // 蠕变率计算的虚函数接口，由具体的蠕变模型实现
@@ -54,11 +54,11 @@ protected:
   virtual ADReal computeCreepRateStressDerivative(const ADReal & effective_stress, const ADReal & effective_creep_strain);
   virtual ADReal computeCreepRateStrainDerivative(const ADReal & effective_stress, const ADReal & effective_creep_strain);
 
-  /// The plastic hardening model for yield stress calculation
-  PlasticHardeningModel * _hardening_model;
-  
-  /// The plasticity model for coupled creep-plasticity computation
+  /// The plasticity model for coupled creep-plasticity computation (可选)
   PlasticityModel * _plasticity_model;
+  
+  /// The plastic hardening model (仅在有塑性模型时使用)
+  PlasticHardeningModel * _hardening_model;
 
   /// 蠕变输出属性
   /// 有效蠕变应变 (标量)
@@ -71,6 +71,8 @@ protected:
   ADMaterialProperty<Real> & _psic;
   /// 蠕变能量密度的活跃部分
   ADMaterialProperty<Real> & _psic_active;
+  /// 蠕变能量密度的活跃部分的旧值
+  const MaterialProperty<Real> & _psic_active_old;
   
   /// 蠕变能量密度对相场的导数
   ADMaterialProperty<Real> & _dpsic_dd;

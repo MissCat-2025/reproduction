@@ -27,10 +27,6 @@ h = 0.1e-3 #m 网格尺寸 文中为0.02mm
     order = CONSTANT
     family = MONOMIAL
   []
-  [psip_active]
-    order = CONSTANT
-    family = MONOMIAL
-  []
 []
 
 [Bounds]
@@ -91,9 +87,9 @@ h = 0.1e-3 #m 网格尺寸 文中为0.02mm
   [psi]
     type = ADDerivativeParsedMaterial
     property_name = psi
-    expression = 'alpha*Gc/c0/l+g*(psie_active+psic_active+psip_active)'
-    coupled_variables = 'd psie_active psic_active psip_active'
-    material_property_names = 'alpha(d) g(d) Gc c0 l'
+    expression = 'alpha*Gc/c0/l+g*(psie_active+psic_active)'
+    coupled_variables = 'd psie_active psic_active'
+    material_property_names = 'alpha(d) g(d) Gc(d) c0 l'
     derivative_order = 1
   []
 []

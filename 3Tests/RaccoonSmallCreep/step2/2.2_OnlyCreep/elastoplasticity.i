@@ -1,4 +1,4 @@
-#  mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i elastoplasticity.i
+#  conda activate moose && dos2unix elastoplasticity.i && dos2unix fracture.i &&mpirun -n 8 /home/yp/projects/reproduction/reproduction-opt -i elastoplasticity.i
 
 
 a = 250

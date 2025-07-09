@@ -22,9 +22,6 @@ Gc = 160e3 #J/m^2
 E = 140e9 #Pa
 nu = 0.3
 sigma_la = 588e6 #Pa 抗拉强度
-sigma_y = 170e6 #Pa 屈服强度
-# psics = '${fparse E*Gc/sigma_0/sigma_0}'
-H = '${fparse E/10}'
 
 
 Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
@@ -53,8 +50,8 @@ Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
   [to_fracture]
     type = MultiAppCopyTransfer
     to_multi_app = 'fracture'
-    variable = 'psie_active psic_active psip_active'
-    source_variable = 'psie_active psic_active psip_active'
+    variable = 'psie_active psic_active'
+    source_variable = 'psie_active psic_active'
   []
 []
 
@@ -122,15 +119,15 @@ Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
 [Materials]
   [bulk_properties]
     type = ADGenericConstantMaterial
-    prop_names = 'l sigma_la sigma_y E nu H'
-    prop_values = '${l} ${sigma_la} ${sigma_y} ${E} ${nu} ${H}'
+    prop_names = 'l sigma_la E nu'
+    prop_values = '${l} ${sigma_la} ${E} ${nu}'
   []
-  [Gc1]
-    type = ADDerivativeParsedMaterial
-    property_name = Gc
-    coupled_variables = 'd'
-    expression = '${Gc} * (1-d)*(1-d)' 
-  []
+  # [Gc1]
+  #   type = ADDerivativeParsedMaterial
+  #   property_name = Gc
+  #   coupled_variables = 'd'
+  #   expression = '${Gc} * (1-d)*(1-d)' 
+  # []
   [degradation]
     type = RationalDegradationFunction
     property_name = g
@@ -157,28 +154,13 @@ Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
     tensile_strength = sigma_la
     outputs = exodus
   []
-  [linear_hardening]
-    type = LinearHardening
-    phase_field = d
-    yield_stress = sigma_y
-    hardening_modulus = H
-    degradation_function = g
-    output_properties = 'psip_active'
-    outputs = exodus
-  []
+
   [strain]
     type = ADComputeSmallStrain
   []
-  [plasticity]
-    type = J2Plasticity_C
-    hardening_model = linear_hardening
-    output_properties = 'effective_plastic_strain'
-    outputs = exodus
-  []
+
   [creep]
     type = CoupledStressStrainCreepRate
-    hardening_model = linear_hardening
-    plasticity_model = plasticity
     phase_field = d
     degradation_function = g
     A1 = ${A11}
