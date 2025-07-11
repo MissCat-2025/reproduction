@@ -116,6 +116,33 @@ IsotropicElasticity::computeStress(const ADRankTwoTensor & strain)
   return ADRankTwoTensor(); // 不会执行到这里
 }
 
+ADReal
+IsotropicElasticity::computeThreeShearModulus()
+{
+  // 计算3倍剪切模量：3G = 3 * E / (2 * (1 + nu))
+  const ADReal nu = _poissons_ratio[_qp];
+  const ADReal E = _youngs_modulus[_qp];
+  const ADReal three_G = 3.0 * E / (2.0 * (1.0 + nu));
+  
+  return three_G;
+}
+
+ADRankTwoTensor
+IsotropicElasticity::computeStressIntact(const ADRankTwoTensor & strain)
+{
+  // 计算拉梅常数
+  const ADReal nu = _poissons_ratio[_qp];
+  const ADReal E = _youngs_modulus[_qp];
+  const ADReal K = E  / (3.0 *  (1.0 - 2.0 * nu));
+  const ADReal G = E / (2.0 * (1.0 + nu));
+  
+  const ADRankTwoTensor I2(ADRankTwoTensor::initIdentity);
+  ADRankTwoTensor stress_intact = K * strain.trace() * I2 + 2.0 * G * strain.deviatoric();
+  return stress_intact;
+}
+
+
+
 ADRankTwoTensor
 IsotropicElasticity::computeStressNoDecomposition(const ADRankTwoTensor & strain)
 {

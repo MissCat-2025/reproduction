@@ -49,6 +49,12 @@ protected:
   /// 手动更新塑性模型状态变量（仅在有塑性模型时使用）
   void updatePlasticityModelState(const ADReal & delta_ep);
   
+  /// 计算弹性修正系数C（根据应力计算方法选择）
+  ADReal computeElasticModifier();
+  
+  /// 统一的应力计算函数（根据策略选择使用不同的方法）
+  ADRankTwoTensor computeStressUnified(const ADRankTwoTensor & elastic_strain,bool loop);
+  
   // 蠕变率计算的虚函数接口，由具体的蠕变模型实现
   virtual ADReal computeCreepRate(const ADReal & effective_stress, const ADReal & effective_creep_strain);
   virtual ADReal computeCreepRateStressDerivative(const ADReal & effective_stress, const ADReal & effective_creep_strain);
@@ -77,10 +83,15 @@ protected:
   /// 蠕变能量密度对相场的导数
   ADMaterialProperty<Real> & _dpsic_dd;
 
-
+  /// 应力计算方法选择
+  const bool _use_three_shear_modulus;
   
-
+  /// 是否使用全程3G策略（仅在_use_three_shear_modulus为true时生效）
+  const bool _full_three_shear_modulus_strategy;
   
+  /// 3倍剪切模量（仅在_use_three_shear_modulus为true时使用）
+  ADReal _three_shear_modulus;
+
   /// 降解函数及其导数
   const ADMaterialProperty<Real> & _gc;
   const ADMaterialProperty<Real> & _dgc_dd;

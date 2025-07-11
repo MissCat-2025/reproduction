@@ -1,6 +1,6 @@
 # === 参数研究案例 ===
 
-# conda activate moose && dos2unix 2.1main.i && dos2unix 2.1_Sub.i && mpirun -n 14 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i
+# conda activate moose && dos2unix 2.1main.i && dos2unix 2.1_Sub.i && mpirun -n 9 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i
 # mpirun -n 14 /home/yp/projects/reproduction/reproduction-opt -i 1.1.2main.i --mesh-only KAERI_HANARO_UpperRod1.e
 pellet_E=201.3e9
 pellet_density=10431.0#10431.0*0.85#kg⋅m-3
@@ -11,8 +11,8 @@ grain_size = 10
 pellet_critical_fracture_strength=6.0e7#Pa
 fission_rate = 1.2e19
 
-length_scale_paramete=5e-5
-NNN=1.5
+length_scale_paramete=6e-5
+NNN=1.2
 grid_sizes = '${fparse length_scale_paramete/NNN}'
 
 #几何与网格参数
@@ -315,10 +315,11 @@ pellet_critical_energy = ${fparse Gc}
       # 相场断裂相关参数
       # use_transition_stress = true
       # use_transient_creep = true
-      max_iter = 100
-      tolerance = 1e-7 #塑性的求解
-      relative_tolerance = 1e-7 #蠕变的相对残差
-      absolute_tolerance = 1e-8 #蠕变的绝对残差
+      use_three_shear_modulus = true
+      # full_three_shear_modulus_strategy = true
+
+      relative_tolerance = 1e-6 #蠕变的相对残差
+      absolute_tolerance = 1e-7 #蠕变的绝对残差
 
       output_properties = 'effective_creep_strain psic_active'
       outputs = exodus 
@@ -410,35 +411,35 @@ power_factor = '${fparse 1000*1/3.1415926/pellet_outer_radius/pellet_outer_radiu
   [dt_limit_func]
     type = ParsedFunction
     expression = 'if(t < 25000, 5000,
-                    if(t < 100000, 100,
-                    if(t < 125000, 100,
-                    if(t < 175000, 500,1000))))'
+                    if(t < 100000, 1000,
+                    if(t < 125000, 1000,
+                    if(t < 175000, 5000,1000))))'
   []
 []
 
 [Executioner]
   type = Transient # 瞬态求解器
-  solve_type = 'PJFNK' #求解器，PJFNK是预处理雅可比自由牛顿-克雷洛夫方法
+  solve_type = 'NEWTON' #求解器，PJFNK是预处理雅可比自由牛顿-克雷洛夫方法
   petsc_options_iname = '-pc_type -pc_factor_mat_solver_package -ksp_type'
   petsc_options_value = 'lu superlu_dist gmres'
   # petsc_options_iname = '-pc_type -ksp_type'
   # petsc_options_value = 'lu gmres'
   automatic_scaling = true # 启用自动缩放功能，有助于改善病态问题的收敛性
-  compute_scaling_once = true  # 每个时间步都重新计算缩放
+  # compute_scaling_once = true  # 每个时间步都重新计算缩放
   # reuse_preconditioner = true
   # reuse_preconditioner_max_linear_its = 20
   line_search = BT
-  nl_max_its = 100
-  nl_rel_tol = 5e-7 # 非线性求解的相对容差
-  nl_abs_tol = 1e-7 # 非线性求解的绝对容差
-  l_tol = 1e-7  # 线性求解的容差
-  l_abs_tol = 5e-8 # 线性求解的绝对容差
+  nl_max_its = 15
+  nl_rel_tol = 1e-6 # 非线性求解的相对容差
+  nl_abs_tol = 5e-7 # 非线性求解的绝对容差
+  l_tol = 5e-7  # 线性求解的容差
+  l_abs_tol = 1e-7 # 线性求解的绝对容差
   l_max_its = 500 # 线性求解的最大迭代次数
   accept_on_max_fixed_point_iteration = true # 达到最大迭代次数时接受解
   dtmin = 1
   end_time = 3.7e5 # 总时间24h
 
-  fixed_point_rel_tol =1e-5 # 固定点迭代的相对容差
+  fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
   [TimeStepper]
     type = FunctionDT
     function = dt_limit_func

@@ -6,6 +6,8 @@
 #include "PlasticityModel.h"
 #include "PlasticHardeningModel.h"
 #include "ElasticityModel.h"
+#include "IsotropicElasticity.h"
+#include "libmesh/utility.h"
 registerMooseObject("reproductionApp", J2CreepPlasticity);
 
 InputParameters
@@ -21,7 +23,12 @@ J2CreepPlasticity::validParams()
   // 牛顿迭代参数
   params.addParam<int>("max_iter", 1000, "Maximum number of iterations for Newton-Raphson solve");
   params.addParam<Real>("tolerance", 1e-10, "Tolerance for Newton-Raphson convergence");
-    // 蠕变输出属性参数
+  
+  // 应力计算方法选择
+  params.addParam<bool>("use_three_shear_modulus", true, "使用3倍剪切模量计算应力修正（true）还是使用完整弹性模型（false）");
+  params.addParam<bool>("full_three_shear_modulus_strategy", false, "当use_three_shear_modulus=true时，是否在整个过程中都使用3G策略（true）还是仅在径向返回映射中使用3G（false）");
+  
+  // 蠕变输出属性参数
   params.addRequiredCoupledVar("phase_field", "Name of the phase-field (damage) variable");
   params.addParam<MaterialPropertyName>(
       "creep_energy_density",
@@ -47,6 +54,11 @@ J2CreepPlasticity::J2CreepPlasticity(const InputParameters & parameters) :
   _psic_active(declareADProperty<Real>(_psic_name + "_active")),
   _psic_active_old(getMaterialPropertyOld<Real>(_psic_name + "_active")),
   _dpsic_dd(declareADProperty<Real>(derivativePropertyName(_psic_name, {_d_name}))),
+  
+  // 应力计算方法选择
+  _use_three_shear_modulus(getParam<bool>("use_three_shear_modulus")),
+  _full_three_shear_modulus_strategy(getParam<bool>("full_three_shear_modulus_strategy")),
+  _three_shear_modulus(0.0),
   
   // 获取降解函数及其导数
   _gc(getADMaterialProperty<Real>(prependBaseName("degradation_function", true))),
@@ -114,9 +126,9 @@ J2CreepPlasticity::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elast
   // Step 2: 计算非塑性试验状态（假设没有塑性增量，只考虑蠕变）
   ADReal delta_ec = 0.0;
   
-  // 计算试验应力
-  ADRankTwoTensor stress_trial = _elasticity_model->computeStress(elastic_trial_strain);
-  
+  // 计算试验应力,直接使用
+  ADRankTwoTensor stress_trial = computeStressUnified(elastic_trial_strain, false);
+
   // 计算偏应力和有效应力
   ADRankTwoTensor stress_dev = stress_trial.deviatoric();
   ADReal effective_stress_trial = std::sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
@@ -139,7 +151,7 @@ J2CreepPlasticity::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elast
   
   // 计算非塑性状态下的弹性应变和应力
   ADRankTwoTensor elastic_strain_np = elastic_trial_strain - delta_ec * _Nc[_qp];
-  ADRankTwoTensor stress_np = _elasticity_model->computeStress(elastic_strain_np);
+  ADRankTwoTensor stress_np = computeStressUnified(elastic_strain_np, false);
   
   // 重新计算偏应力和有效应力
   stress_dev = stress_np.deviatoric();
@@ -233,6 +245,64 @@ J2CreepPlasticity::f_no_plastic_strain(const ADReal & effective_stress)
 }
 
 ADReal
+J2CreepPlasticity::computeElasticModifier()
+{
+  // 根据选择的应力计算方法返回弹性修正系数
+  if (_use_three_shear_modulus)
+  {
+    // 使用3倍剪切模量：3G
+    // 尝试动态转换为IsotropicElasticity以访问computeThreeShearModulus方法
+    IsotropicElasticity * iso_elasticity = dynamic_cast<IsotropicElasticity*>(_elasticity_model);
+    if (iso_elasticity)
+      return iso_elasticity->computeThreeShearModulus();
+    else
+      mooseError("computeThreeShearModulus() is only available for IsotropicElasticity models");
+  }
+  else
+  {
+    return _elasticity_model->computeStress(_Nc[_qp]).doubleContraction(_Nc[_qp]);
+  }
+}
+
+ADRankTwoTensor
+J2CreepPlasticity::computeStressUnified(const ADRankTwoTensor & elastic_strain, bool loop)
+{
+  // 根据策略选择使用不同的应力计算方法
+  if (_use_three_shear_modulus && _full_three_shear_modulus_strategy)
+  {
+    // 策略1：全程3G策略
+    // 尝试动态转换为IsotropicElasticity以访问computeStressIntact方法
+    IsotropicElasticity * iso_elasticity = dynamic_cast<IsotropicElasticity*>(_elasticity_model);
+    if (iso_elasticity)
+      return iso_elasticity->computeStressIntact(elastic_strain);
+    else
+      return _elasticity_model->computeStress(elastic_strain);
+  }
+  else if (_use_three_shear_modulus && !_full_three_shear_modulus_strategy)
+  {
+    // 策略2：循环内使用3G，非循环内使用完整弹性模型
+    if (loop)
+    {
+      // 尝试动态转换为IsotropicElasticity以访问computeStressIntact方法
+      IsotropicElasticity * iso_elasticity = dynamic_cast<IsotropicElasticity*>(_elasticity_model);
+      if (iso_elasticity)
+        return iso_elasticity->computeStressIntact(elastic_strain);
+      else
+        return _elasticity_model->computeStress(elastic_strain);
+    }
+    else
+    {
+      return _elasticity_model->computeStress(elastic_strain);
+    }
+  }
+  else
+  {
+    // 策略3：使用完整弹性模型
+    return _elasticity_model->computeStress(elastic_strain);
+  }
+}
+
+ADReal
 J2CreepPlasticity::computeResidual(const ADReal & effective_trial_stress, const ADReal & delta_ec)
 {
   // 根据文档公式:
@@ -242,38 +312,11 @@ J2CreepPlasticity::computeResidual(const ADReal & effective_trial_stress, const 
   ADReal ec_current = _ec_old[_qp] + delta_ec;
   
   // 计算非塑性有效应力
-  ADReal C2 = _elasticity_model->computeStress(_Nc[_qp]).doubleContraction(_Nc[_qp]);
-  ADReal effective_stress_np = effective_trial_stress - C2 * delta_ec;
-  
-  // // DEBUG_OUTPUT: 输出计算过程
-  // if (_qp == 0)
-  // {
-  //   _console << "DEBUG_RESIDUAL: effective_trial_stress = " << raw_value(effective_trial_stress) << std::endl;
-  //   _console << "DEBUG_RESIDUAL: delta_ec = " << raw_value(delta_ec) << std::endl;
-  //   _console << "DEBUG_RESIDUAL: ec_current = " << raw_value(ec_current) << std::endl;
-  //   _console << "DEBUG_RESIDUAL: C2 = " << raw_value(C2) << std::endl;
-  //   _console << "DEBUG_RESIDUAL: effective_stress_np = " << raw_value(effective_stress_np) << std::endl;
-  //   _console << "DEBUG_RESIDUAL: _dt = " << _dt << std::endl;
-  // }
-  
+  ADReal effective_stress_np = effective_trial_stress - delta_ec*computeElasticModifier();
   // 计算蠕变率
   ADReal creep_rate = computeCreepRate(effective_stress_np, ec_current);
-  
-  // // DEBUG_OUTPUT: 输出蠕变率
-  // if (_qp == 0)
-  // {
-  //   _console << "DEBUG_RESIDUAL: creep_rate = " << raw_value(creep_rate) << std::endl;
-  //   _console << "DEBUG_RESIDUAL: creep_rate * _dt = " << raw_value(creep_rate * _dt) << std::endl;
-  // }
-  
   // 返回残差
   ADReal residual = delta_ec - creep_rate * _dt;
-  
-  // // DEBUG_OUTPUT: 输出残差
-  // if (_qp == 0)
-  // {
-  //   _console << "DEBUG_RESIDUAL: residual = " << raw_value(residual) << std::endl;
-  // }
   
   return residual;
 }
@@ -283,10 +326,11 @@ J2CreepPlasticity::computeDerivative(const ADReal & effective_trial_stress, cons
 {
   // 残差对 delta_ec 的导数
   ADReal ec_current = _ec_old[_qp] + delta_ec;
-  
   // 计算非塑性有效应力
-  ADReal C = _elasticity_model->computeStress(_Nc[_qp]).doubleContraction(_Nc[_qp]);
-  ADReal effective_stress_np = effective_trial_stress - C * delta_ec;
+  ADReal effective_stress_np = effective_trial_stress - delta_ec*computeElasticModifier();
+  
+  // 计算弹性修正系数（用于导数计算）
+  ADReal C = computeElasticModifier();
   
   // 计算蠕变率的导数
   ADReal dg_dsigma = computeCreepRateStressDerivative(effective_stress_np, ec_current);
@@ -356,13 +400,9 @@ J2CreepPlasticity::solveCreepPlasticityCoupled(ADRankTwoTensor & stress,
     _creep_strain[_qp] = creep_strain_np;
     _ec[_qp] = ec_np;
     elastic_strain = elastic_trial_strain - delta_ec_np * _Nc[_qp];
-    stress = _elasticity_model->computeStress(elastic_strain);
+    stress = computeStressUnified(elastic_strain, false);
     return;
   }
-  
-  // 获取弹性系数 C = 2μ * 3/2 = 3μ (对于J2塑性)
-  ADReal C = _elasticity_model->computeStress(_Nc[_qp]).doubleContraction(_Nc[_qp]);
-  
   
   // 获取上一步的塑性应变
   Real ep_old = _plasticity_model->getEffectivePlasticStrainOld();
@@ -373,7 +413,7 @@ J2CreepPlasticity::solveCreepPlasticityCoupled(ADRankTwoTensor & stress,
   // 牛顿迭代求解F3方程
   int max_iter = getParam<int>("max_iter");
   Real tolerance = getParam<Real>("tolerance");
-  
+  ADReal C = computeElasticModifier();  // 传入0作为占位符，实际不影响计算
   for (int iter = 0; iter < max_iter; iter++)
   {
     // 计算当前有效塑性应变
@@ -387,8 +427,11 @@ J2CreepPlasticity::solveCreepPlasticityCoupled(ADRankTwoTensor & stress,
     ADReal creep_rate = computeCreepRate(yield_stress, ec_np);
     
     // 计算F3残差
-    ADReal F3 = effective_stress_trial - _elasticity_model->computeStress(delta_ep*_Nc[_qp]).doubleContraction(_Nc[_qp]) 
-    - _elasticity_model->computeStress(creep_rate * _dt*_Nc[_qp]).doubleContraction(_Nc[_qp]) - yield_stress;
+    // 使用统一的应力修正函数计算塑性和蠕变应力修正
+    ADReal plastic_stress_correction = delta_ep*computeElasticModifier();
+    ADReal creep_stress_correction = creep_rate * _dt*computeElasticModifier();
+    
+    ADReal F3 = effective_stress_trial - plastic_stress_correction - creep_stress_correction - yield_stress;
     
     // 检查收敛
     if (std::abs(raw_value(F3)) < tolerance)
@@ -399,6 +442,7 @@ J2CreepPlasticity::solveCreepPlasticityCoupled(ADRankTwoTensor & stress,
     ADReal creep_stress_derivative = computeCreepRateStressDerivative(yield_stress, ec_np);  // dg/dσ_Y
     
     // dF3/d(Δε_eq^pl) = -C - C * (dg/dσ_Y * dσ_Y/dε_eq^pl) * Δt - dσ_Y/dε_eq^pl
+
     ADReal dF3_ddelta_ep = -C - C * creep_stress_derivative * hardening_derivative * _dt - hardening_derivative;
     
     // 牛顿迭代更新
@@ -427,7 +471,7 @@ J2CreepPlasticity::solveCreepPlasticityCoupled(ADRankTwoTensor & stress,
   elastic_strain = elastic_trial_strain - delta_ep * _Nc[_qp] - delta_ec_final * _Nc[_qp];
   
   // 5. 计算最终应力
-  stress = _elasticity_model->computeStress(elastic_strain);
+  stress = computeStressUnified(elastic_strain, false);
   
   // 6. 手动更新塑性模型的状态变量（避免调用updateState）
   updatePlasticityModelState(delta_ep);

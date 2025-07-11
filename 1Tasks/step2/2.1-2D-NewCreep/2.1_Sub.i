@@ -6,8 +6,8 @@
   []
   # 各种参数都取自[1]Multiphysics phase-field modeling of quasi-static cracking in urania ceramic nuclear fuel
 #几何与网格参数
-length_scale_paramete=5e-5
-NNN=1.5
+length_scale_paramete=6e-5
+NNN=1.2
 grid_sizes = '${fparse length_scale_paramete/NNN}'
 
 pellet_outer_radius = 4.1e-3#直径变半径，并且单位变mm
@@ -152,18 +152,18 @@ n_elems_radial_pellet = '${fparse int(pellet_outer_radius/(4*grid_sizes))}'     
     petsc_options_value = '201                hypre    boomeramg  vinewtonrsls'  
     automatic_scaling = true # 启用自动缩放功能，有助于改善病态问题的收敛性
     compute_scaling_once = true  # 每个时间步都重新计算缩放
-    
-    nl_max_its = 100
-    nl_rel_tol = 5e-7 # 非线性求解的相对容差
-    nl_abs_tol = 1e-7 # 非线性求解的绝对容差
-    l_tol = 1e-7  # 线性求解的容差
-    l_abs_tol = 5e-8 # 线性求解的绝对容差
+
+    nl_max_its = 15
+    nl_rel_tol = 1e-6 # 非线性求解的相对容差
+    nl_abs_tol = 5e-7 # 非线性求解的绝对容差
+    l_tol = 5e-7  # 线性求解的容差
+    l_abs_tol = 1e-7 # 线性求解的绝对容差
     l_max_its = 500 # 线性求解的最大迭代次数
     accept_on_max_fixed_point_iteration = true # 达到最大迭代次数时接受解
     dtmin = 1
     end_time = 3.7e5 # 总时间24h
   
-    fixed_point_rel_tol =1e-5 # 固定点迭代的相对容差
+    fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
     [TimeStepper]
       type = FunctionDT
       function = dt_limit_func
@@ -173,9 +173,9 @@ n_elems_radial_pellet = '${fparse int(pellet_outer_radius/(4*grid_sizes))}'     
     [dt_limit_func]
       type = ParsedFunction
       expression = 'if(t < 25000, 5000,
-                      if(t < 100000, 100,
-                      if(t < 125000, 100,
-                      if(t < 175000, 500,1000))))'
+                      if(t < 100000, 1000,
+                      if(t < 125000, 1000,
+                      if(t < 175000, 5000,1000))))'
     []
   []
   

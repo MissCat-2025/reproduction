@@ -16,6 +16,11 @@ public:
   IsotropicElasticity(const InputParameters & parameters);
   
   virtual ADRankTwoTensor computeStress(const ADRankTwoTensor & strain) override;
+  
+  /// 计算3倍剪切模量：3G = 3 * E / (2 * (1 + nu))
+  virtual ADReal computeThreeShearModulus();
+
+  ADRankTwoTensor computeStressIntact(const ADRankTwoTensor & strain);
 
 protected:
   // 弹性参数
