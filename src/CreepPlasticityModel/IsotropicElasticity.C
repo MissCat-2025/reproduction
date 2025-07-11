@@ -1,11 +1,11 @@
-// IsotropicElasticityThreshold.C 修正版
-#include "IsotropicElasticityThreshold.h"
+// IsotropicElasticity.C 修正版
+#include "IsotropicElasticity.h"
 #include "RaccoonUtils.h"
 
-registerMooseObject("reproductionApp", IsotropicElasticityThreshold);
+registerMooseObject("reproductionApp", IsotropicElasticity);
 
 InputParameters
-IsotropicElasticityThreshold::validParams()
+IsotropicElasticity::validParams()
 {
   InputParameters params = ElasticityModel::validParams();
   params.addClassDescription("Isotropic elasticity with threshold energy option using E and nu as inputs.");
@@ -20,16 +20,18 @@ IsotropicElasticityThreshold::validParams()
       "Name of the strain energy density computed by this material model");
   params.addParam<MaterialPropertyName>("degradation_function", "g", "The degradation function");
   
-  MooseEnum decomp_options("NONE SPECTRAL VOLDEV", "NONE");
+  MooseEnum decomp_options("NONE SPECTRAL VOLDEV MAXPRINCIPAL", "NONE");
   params.addParam<MooseEnum>("decomposition", decomp_options, "The decomposition method");
   
   params.addParam<bool>("use_threshold", false, "Whether to use threshold energy");
   params.addParam<MaterialPropertyName>("tensile_strength", "sigma0", "Critical stress for threshold");
   
+  params.addParam<bool>("use_history_max", false, "Whether to use history maximum variable H for damage irreversibility");
+  
   return params;
 }
 
-IsotropicElasticityThreshold::IsotropicElasticityThreshold(
+IsotropicElasticity::IsotropicElasticity(
     const InputParameters & parameters)
   : ElasticityModel(parameters),
     DerivativeMaterialPropertyNameInterface(),
@@ -53,26 +55,50 @@ IsotropicElasticityThreshold::IsotropicElasticityThreshold(
     _sigma_c(_use_threshold ? getADMaterialProperty<Real>(getParam<MaterialPropertyName>("tensile_strength")) 
                             : declareADProperty<Real>("dummy_sigma_c")),
     
+    _use_history_max(getParam<bool>("use_history_max")),
+    _history_max(_use_history_max ? declareProperty<Real>("history_max") : declareProperty<Real>("dummy_history_max")),
+    _history_max_old(_use_history_max ? getMaterialPropertyOld<Real>("history_max") : getMaterialPropertyOld<Real>("dummy_history_max")),
+    
     _decomposition(getParam<MooseEnum>("decomposition").getEnum<Decomposition>())
 {
 }
 
-ADReal
-IsotropicElasticityThreshold::applyThreshold(ADReal psie_active_raw)
+void
+IsotropicElasticity::updateHistoryMax(ADReal psie_active_current)
 {
-  if (_use_threshold)
+  if (_use_history_max)
   {
-    ADReal threshold = 0.5 * _sigma_c[_qp] * _sigma_c[_qp] / _youngs_modulus[_qp];
-    return std::max(psie_active_raw, threshold);
-  }
-  else
-  {
-    return psie_active_raw;
+    // 历史最大变量：H = max(H_old, psie_active_current)
+    Real psie_active_value = MetaPhysicL::raw_value(psie_active_current);
+    Real history_max_old_value = _history_max_old[_qp];
+    _history_max[_qp] = std::max(history_max_old_value, psie_active_value);
   }
 }
 
+ADReal
+IsotropicElasticity::applyThreshold(ADReal psie_active_raw)
+{
+  ADReal psie_active_final = psie_active_raw;
+  
+  // 首先应用历史最大变量
+  if (_use_history_max)
+  {
+    // 使用历史最大值
+    psie_active_final = _history_max[_qp];
+  }
+  
+  // 然后应用阈值：max(psie_active, 0.5*sigma_c^2/E)
+  if (_use_threshold)
+  {
+    ADReal threshold = 0.5 * _sigma_c[_qp] * _sigma_c[_qp] / _youngs_modulus[_qp];
+    psie_active_final = std::max(psie_active_final, threshold);
+  }
+  
+  return psie_active_final;
+}
+
 ADRankTwoTensor
-IsotropicElasticityThreshold::computeStress(const ADRankTwoTensor & strain)
+IsotropicElasticity::computeStress(const ADRankTwoTensor & strain)
 {
   switch (_decomposition)
   {
@@ -82,14 +108,16 @@ IsotropicElasticityThreshold::computeStress(const ADRankTwoTensor & strain)
       return computeStressSpectralDecomposition(strain);
     case Decomposition::voldev:
       return computeStressVolDevDecomposition(strain);
+    case Decomposition::maxprincipal:
+      return computeStressMaxPrincipalDecomposition(strain);
     default:
-      mooseError("Unknown decomposition type in IsotropicElasticityThreshold");
+      mooseError("Unknown decomposition type in IsotropicElasticity");
   }
   return ADRankTwoTensor(); // 不会执行到这里
 }
 
 ADRankTwoTensor
-IsotropicElasticityThreshold::computeStressNoDecomposition(const ADRankTwoTensor & strain)
+IsotropicElasticity::computeStressNoDecomposition(const ADRankTwoTensor & strain)
 {
   // 计算拉梅常数
   const ADReal nu = _poissons_ratio[_qp];
@@ -101,10 +129,13 @@ IsotropicElasticityThreshold::computeStressNoDecomposition(const ADRankTwoTensor
   ADRankTwoTensor stress_intact = K * strain.trace() * I2 + 2.0 * G * strain.deviatoric();
   ADRankTwoTensor stress = _g[_qp] * stress_intact;
 
-  _psie_active[_qp] = 0.5 * stress_intact.doubleContraction(strain);
+  ADReal psie_active_raw = 0.5 * stress_intact.doubleContraction(strain);
   
-  // 应用阈值
-  _psie_active[_qp] = applyThreshold(_psie_active[_qp]);
+  // 更新历史最大变量
+  updateHistoryMax(psie_active_raw);
+  
+  // 应用阈值（考虑历史最大变量）
+  _psie_active[_qp] = applyThreshold(psie_active_raw);
   
   _psie[_qp] = _g[_qp] * _psie_active[_qp];
   _dpsie_dd[_qp] = _dg_dd[_qp] * _psie_active[_qp];
@@ -113,7 +144,7 @@ IsotropicElasticityThreshold::computeStressNoDecomposition(const ADRankTwoTensor
 }
 
 ADRankTwoTensor
-IsotropicElasticityThreshold::computeStressSpectralDecomposition(const ADRankTwoTensor & strain)
+IsotropicElasticity::computeStressSpectralDecomposition(const ADRankTwoTensor & strain)
 {
   // 计算拉梅常数
   const ADReal nu = _poissons_ratio[_qp];
@@ -140,7 +171,10 @@ IsotropicElasticityThreshold::computeStressSpectralDecomposition(const ADRankTwo
   ADReal psie_active_raw = 0.5 * lambda * strain_tr_pos * strain_tr_pos +
                           G * strain_pos.doubleContraction(strain_pos);
   
-  // 应用阈值
+  // 更新历史最大变量
+  updateHistoryMax(psie_active_raw);
+  
+  // 应用阈值（考虑历史最大变量）
   _psie_active[_qp] = applyThreshold(psie_active_raw);
   
   ADReal psie_inactive = psie_intact - psie_active_raw;
@@ -151,7 +185,7 @@ IsotropicElasticityThreshold::computeStressSpectralDecomposition(const ADRankTwo
 }
 
 ADRankTwoTensor
-IsotropicElasticityThreshold::computeStressVolDevDecomposition(const ADRankTwoTensor & strain)
+IsotropicElasticity::computeStressVolDevDecomposition(const ADRankTwoTensor & strain)
 {
   // 计算拉梅常数
   const ADReal nu = _poissons_ratio[_qp];
@@ -178,10 +212,54 @@ IsotropicElasticityThreshold::computeStressVolDevDecomposition(const ADRankTwoTe
   ADReal psie_inactive = 0.5 * K * strain_tr_neg * strain_tr_neg;
   ADReal psie_active_raw = psie_intact - psie_inactive;
   
-  // 应用阈值
+  // 更新历史最大变量
+  updateHistoryMax(psie_active_raw);
+  
+  // 应用阈值（考虑历史最大变量）
   _psie_active[_qp] = applyThreshold(psie_active_raw);
   
   _psie[_qp] = _g[_qp] * _psie_active[_qp] + psie_inactive;
+  _dpsie_dd[_qp] = _dg_dd[_qp] * _psie_active[_qp];
+
+  return stress;
+}
+
+ADRankTwoTensor
+IsotropicElasticity::computeStressMaxPrincipalDecomposition(const ADRankTwoTensor & strain)
+{
+  // 基于 SmallDeformationH.C 的最大主应力分解算法
+  const ADReal nu = _poissons_ratio[_qp];
+  const ADReal E = _youngs_modulus[_qp];
+  const ADReal K = E / (3.0 * (1.0 - 2.0 * nu));
+  const ADReal G = E / (2.0 * (1.0 + nu));
+  
+  const ADRankTwoTensor I2(ADRankTwoTensor::initIdentity);
+  ADRankTwoTensor stress_intact = K * strain.trace() * I2 + 2.0 * G * strain.deviatoric();
+  ADRankTwoTensor stress = _g[_qp] * stress_intact;
+
+  // 使用 symmetricEigenvalues 获取特征值，避免与 Point 不兼容问题
+  std::vector<ADReal> eigenvals(LIBMESH_DIM);
+  stress_intact.symmetricEigenvalues(eigenvals);
+
+  // 找出最大特征值
+  ADReal sigma_bar_eq = eigenvals[0];
+  for (unsigned int i = 1; i < LIBMESH_DIM; i++)
+    if (eigenvals[i] > sigma_bar_eq)
+      sigma_bar_eq = eigenvals[i];
+      
+  // 应用 Macaulay 括号（只取正部分）
+  sigma_bar_eq = RaccoonUtils::Macaulay(sigma_bar_eq);
+
+  // 计算损伤驱动力：Y_bar = 0.5 * sigma_bar_eq^2 / E
+  ADReal Y_bar = 0.5 * sigma_bar_eq * sigma_bar_eq / E;
+  
+  // 更新历史最大变量
+  updateHistoryMax(Y_bar);
+  
+  // 应用阈值（考虑历史最大变量）
+  _psie_active[_qp] = applyThreshold(Y_bar);
+  
+  _psie[_qp] = _g[_qp] * _psie_active[_qp];
   _dpsie_dd[_qp] = _dg_dd[_qp] * _psie_active[_qp];
 
   return stress;

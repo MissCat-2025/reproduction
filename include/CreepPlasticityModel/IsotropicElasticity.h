@@ -1,4 +1,4 @@
-// IsotropicElasticityThreshold.h
+// IsotropicElasticity.h
 #pragma once
 
 #include "ElasticityModel.h"
@@ -6,13 +6,14 @@
 
 /**
  * 各向同性弹性材料，可选阈值能量，直接使用杨氏模量和泊松比作为输入参数
+ * 支持历史最大变量H以确保损伤不可逆性
  */
-class IsotropicElasticityThreshold : public ElasticityModel,
+class IsotropicElasticity : public ElasticityModel,
                                                     public DerivativeMaterialPropertyNameInterface
 {
 public:
   static InputParameters validParams();
-  IsotropicElasticityThreshold(const InputParameters & parameters);
+  IsotropicElasticity(const InputParameters & parameters);
   
   virtual ADRankTwoTensor computeStress(const ADRankTwoTensor & strain) override;
 
@@ -39,15 +40,24 @@ protected:
   const bool _use_threshold;
   const ADMaterialProperty<Real> & _sigma_c;
   
+  // 历史最大变量H参数
+  const bool _use_history_max;
+  MaterialProperty<Real> & _history_max;
+  const MaterialProperty<Real> & _history_max_old;
+  
   // 分解方法
-  enum class Decomposition { none, spectral, voldev };
+  enum class Decomposition { none, spectral, voldev, maxprincipal };
   const Decomposition _decomposition;
   
   // 计算方法
   ADRankTwoTensor computeStressNoDecomposition(const ADRankTwoTensor & strain);
   ADRankTwoTensor computeStressSpectralDecomposition(const ADRankTwoTensor & strain);
   ADRankTwoTensor computeStressVolDevDecomposition(const ADRankTwoTensor & strain);
+  ADRankTwoTensor computeStressMaxPrincipalDecomposition(const ADRankTwoTensor & strain);
   
   // 应用阈值
   ADReal applyThreshold(ADReal psie_active_raw);
+  
+  // 更新历史最大变量
+  void updateHistoryMax(ADReal psie_active_current);
 };

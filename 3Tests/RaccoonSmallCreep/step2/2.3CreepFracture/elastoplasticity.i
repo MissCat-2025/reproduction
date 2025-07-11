@@ -1,30 +1,19 @@
 # conda activate moose && dos2unix elastoplasticity.i && dos2unix fracture.i &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i elastoplasticity.i
 #Phase-field fracture modeling for creep crack
 #4.1. Uniaxial tension model
-A1 = 4.33e-32
-A2 = 3.6e-25
-A3 = 1.5e-25
-n1 = 10.08
-n2 = 8.9
-n3 = 10.0
+A = 9.541e-35
+n = 11.5
 HHH = 1 #时间换算，
 X = 1e-6 #Mpa换算
-A11=${fparse A1*X^n1/HHH}
-A22=${fparse A2*X^n2/HHH}
-A33=${fparse A3*X^n3/HHH}
-
-a = 10e-3 #m 正方形边长
-h = 0.1e-3 #m 网格尺寸 文中为0.02mm
-l = 0.2e-3 #m 
-
+A11=${fparse A*X^n/HHH}
 
 Gc = 160e3 #J/m^2
-E = 140e9 #Pa
+E = 165e9 #Pa
 nu = 0.3
-sigma_la = 588e6 #Pa 抗拉强度
+sigma_quf = 356e6 #Pa 屈服强度
+l = 0.08e-3 #m
 
-
-Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
+# Pressure1 = 8000 #Pa 290, 308, 349, 359 and 366 MPa
 
 [GlobalParams]
   displacements = 'disp_x disp_y'
@@ -35,7 +24,7 @@ Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
   [fracture]
     type = TransientMultiApp
     input_files = 'fracture.i'
-    cli_args = 'a=${a};Gc=${Gc};l=${l} '
+    cli_args = 'Gc=${Gc};l=${l} '
     execute_on = 'TIMESTEP_END'
   []
 []
@@ -56,22 +45,8 @@ Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
 []
 
 [Mesh]
-  [gmg]
-    type = GeneratedMeshGenerator
-    dim = 2
-    xmax = ${a}
-    ymax = ${a}
-    nx = '${fparse ceil(a/h)}'
-    ny = '${fparse ceil(a/h)}'
-  []
-  # [nodeset1]
-  #   type = ParsedGenerateNodeset
-  #   input = gmg
-  #   expression = 'x > 0.004995 & x < 0.005005'
-  #   epsilon =  1e-9
-  #   new_nodeset_name = leftpoint
-  # []
-
+  type = FileMesh
+  file = CT_model.e
 []
 
 [Variables]
@@ -84,7 +59,7 @@ Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
 [AuxVariables]
   [d]
   []
-    [vonMises]
+  [vonMises]
       order = CONSTANT
       family = MONOMIAL
   []
@@ -106,28 +81,20 @@ Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
     type = ADStressDivergenceTensors
     variable = disp_x
     component = 0
-    use_displaced_mesh = true
   []
   [solid_y]
     type = ADStressDivergenceTensors
     variable = disp_y
     component = 1
-    use_displaced_mesh = true
   []
 []
 
 [Materials]
   [bulk_properties]
     type = ADGenericConstantMaterial
-    prop_names = 'l sigma_la E nu'
-    prop_values = '${l} ${sigma_la} ${E} ${nu}'
+    prop_names = 'l sigma_quf E nu'
+    prop_values = '${l} ${sigma_quf} ${E} ${nu}'
   []
-  # [Gc1]
-  #   type = ADDerivativeParsedMaterial
-  #   property_name = Gc
-  #   coupled_variables = 'd'
-  #   expression = '${Gc} * (1-d)*(1-d)' 
-  # []
   [degradation]
     type = RationalDegradationFunction
     property_name = g
@@ -160,15 +127,14 @@ Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
   []
 
   [creep]
-    type = CoupledStressStrainCreepRate
+    type = PowerLawCreepRate
     phase_field = d
     degradation_function = g
-    A1 = ${A11}
-    A2 = ${A22}
-    A3 = ${A33}
+    A = ${A11}
+    n = ${n}
     # 可选参数（如果需要调整）
-    max_iter = 3
-    tolerance = 1e-8
+    max_iter = 5
+    tolerance = 1e-9
     output_properties = 'effective_creep_strain psic_active'
     outputs = exodus 
   []
@@ -180,44 +146,40 @@ Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
 []
 
 [BCs]
-  [xfix]
-    type = DirichletBC
-    variable = disp_x
-    boundary = 'left'
-    value = 0.000
-  []
-  [yfix]
-    type = DirichletBC
-    variable = disp_y
-    boundary = 'bottom'
-    value = 0
-  []
-  [gap_pressure_fuel_x]
+  [upper_load]
     type = Pressure
+    boundary = 'upper_hole'
     variable = disp_y
-    boundary = 'top'
-    factor = -${Pressure1}
+    factor = 2.83e8
+  []
+  [lower_load]
+    type = Pressure
+    boundary = 'lower_hole'
+    variable = disp_y
+    factor = 2.83e8
+  []
+  # 约束刚体运动 - 固定右边界的x方向位移
+  [fixed_x]
+      type = DirichletBC
+      variable = disp_x
+      boundary = 'right'
+      value = 0.0
+  []
+  
+  # # 固定一个点的y方向位移（防止刚体运动）
+  [fixed_y]
+      type = DirichletBC
+      variable = disp_y
+      boundary = 'right'
+      value = 0.0
   []
 []
 [Postprocessors]
-  # 计算整个域的有效蠕变应变积分
   [total_effective_creep_strain]
     type = ADElementIntegralMaterialProperty
     mat_prop = effective_creep_strain
     execute_on = 'INITIAL TIMESTEP_END'
   []
-  # [total_effective_plastic_strain]
-  #   type = ADElementIntegralMaterialProperty
-  #   mat_prop = effective_plastic_strain
-  #   execute_on = 'INITIAL TIMESTEP_END'
-  # []
-  # 计算塑性应变和蠕变应变的总和
-  # [total_effective_inelastic_strain]
-  #   type = LinearCombinationPostprocessor
-  #   pp_names = 'total_effective_plastic_strain total_effective_creep_strain'
-  #   pp_coefs = '1.0 1.0'
-  #   execute_on = 'INITIAL TIMESTEP_END'
-  # []
 []
 
 [Executioner]
@@ -230,7 +192,7 @@ Pressure1 = 290e6 #Pa 290, 308, 349, 359 and 366 MPa
   nl_rel_tol = 1e-08
   nl_abs_tol = 1e-10
   nl_max_its = 50
-  dt = 10
+  dt = 2.5
   end_time = 70000000
 
   automatic_scaling = true
