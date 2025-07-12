@@ -42,7 +42,7 @@ UO2CreepRate::validParams()
   params.addParam<bool>("use_transition_stress", false, "是否使用应力转变点");
   
   // 时间依赖瞬态蠕变参数
-  params.addParam<bool>("use_transient_creep", true, "是否使用时间依赖瞬态蠕变");
+  params.addParam<bool>("use_transient_creep", false, "是否使用时间依赖瞬态蠕变");
   params.addParam<Real>("transient_decay_constant", 1.40e-6, "瞬态蠕变衰减常数 (1/s)");
   params.addParam<Real>("transient_multiplier", 2.5, "瞬态蠕变倍数");
 
@@ -162,14 +162,14 @@ UO2CreepRate::computeSteadyStateCreepRate(const ADReal & effective_stress, const
     {
       // 高应力区域：线性项使用转变应力，幂律项使用实际应力
       creep_th1 = _fission_term * _density_term1 * _sigma_trans * _exp_Q1;
-      creep_th2 = (_a5 * _fission_rate) * _density_term2 * std::pow(effective_stress, 4.5) * _exp_Q2;
+      creep_th2 = (_a5) * _density_term2 * std::pow(effective_stress, 4.5) * _exp_Q2;
     }
   }
   else
   {
     // 不使用转变应力 - 同时应用两项
     creep_th1 = _fission_term * _density_term1 * effective_stress * _exp_Q1;
-    creep_th2 = (_a5 * _fission_rate) * _density_term2 * std::pow(effective_stress, 4.5) * _exp_Q2;
+    creep_th2 = (_a5) * _density_term2 * std::pow(effective_stress, 4.5) * _exp_Q2;
   }
   
   // 辐照蠕变
@@ -237,14 +237,14 @@ UO2CreepRate::computeCreepRateStressDerivative(const ADReal & effective_stress, 
     {
       // 高应力区域：线性项无应力依赖（因为使用转变应力），幂律项有导数
       d_creep_th1_d_stress = 0.0;
-      d_creep_th2_d_stress = 4.5 * (_a5 * _fission_rate) * _density_term2 * std::pow(effective_stress, 3.5) * _exp_Q2;
+      d_creep_th2_d_stress = 4.5 * (_a5) * _density_term2 * std::pow(effective_stress, 3.5) * _exp_Q2;
     }
   }
   else
   {
     // 不使用转变应力：两项都有导数
     d_creep_th1_d_stress = _fission_term * _density_term1 * _exp_Q1;
-    d_creep_th2_d_stress = 4.5 * (_a5 * _fission_rate) * _density_term2 * std::pow(effective_stress, 3.5) * _exp_Q2;
+    d_creep_th2_d_stress = 4.5 * (_a5) * _density_term2 * std::pow(effective_stress, 3.5) * _exp_Q2;
   }
   
   // 辐照蠕变导数

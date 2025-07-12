@@ -6,10 +6,8 @@
   []
   # 各种参数都取自[1]Multiphysics phase-field modeling of quasi-static cracking in urania ceramic nuclear fuel
 #几何与网格参数
-length_scale_paramete=6e-5
-NNN=1.2
-grid_sizes = '${fparse length_scale_paramete/NNN}'
 
+grid_sizes = 8e-5
 pellet_outer_radius = 4.1e-3#直径变半径，并且单位变mm
 #将下列参数转化为整数
 n_elems_azimuthal = '${fparse 2*ceil(3.1415*2*(pellet_outer_radius/(4*grid_sizes)/2))}'  # 周向网格数（向上取整）
@@ -55,7 +53,7 @@ n_elems_radial_pellet = '${fparse int(pellet_outer_radius/(4*grid_sizes))}'     
       order = CONSTANT
       family = MONOMIAL
     []
-    # [psic_active]
+    # [psip_active]
     #   order = CONSTANT
     #   family = MONOMIAL
     # []
@@ -152,30 +150,41 @@ n_elems_radial_pellet = '${fparse int(pellet_outer_radius/(4*grid_sizes))}'     
     petsc_options_value = '201                hypre    boomeramg  vinewtonrsls'  
     automatic_scaling = true # 启用自动缩放功能，有助于改善病态问题的收敛性
     compute_scaling_once = true  # 每个时间步都重新计算缩放
-
-    nl_max_its = 15
-    nl_rel_tol = 1e-6 # 非线性求解的相对容差
-    nl_abs_tol = 5e-7 # 非线性求解的绝对容差
-    l_tol = 5e-7  # 线性求解的容差
-    l_abs_tol = 1e-7 # 线性求解的绝对容差
+    
+    nl_max_its = 500
+    nl_rel_tol = 1e-8 # 非线性求解的相对容差
+    nl_abs_tol = 5e-9 # 非线性求解的绝对容差
+    l_tol = 1e-8  # 线性求解的容差
+    l_abs_tol = 5e-9 # 线性求解的绝对容差
     l_max_its = 500 # 线性求解的最大迭代次数
     accept_on_max_fixed_point_iteration = true # 达到最大迭代次数时接受解
     dtmin = 1
     end_time = 3.7e5 # 总时间24h
-  
+    dtmax = 2500
     fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
-    [TimeStepper]
-      type = FunctionDT
-      function = dt_limit_func
-    []
+    [./TimeStepper]
+      type = IterationAdaptiveDT
+      dt = 1000
+      growth_factor = 1.2
+      cutback_factor = 0.8
+      optimal_iterations = 6
+      iteration_window = 2
+    [../]
   []
-  [Functions]
-    [dt_limit_func]
-      type = ParsedFunction
-      expression = 'if(t < 25000, 5000,
-                      if(t < 100000, 1000,
-                      if(t < 125000, 1000,
-                      if(t < 175000, 5000,1000))))'
+  [Adaptivity]
+    initial_marker = marker
+    marker = marker
+    max_h_level = 2
+    [Markers]
+      [marker]
+        type = ValueRangeMarker
+        lower_bound = -1
+        upper_bound = 0.1
+        # buffer_size = 0.2
+        variable = d
+        invert = true
+        third_state = coarsen
+      []
     []
   []
   

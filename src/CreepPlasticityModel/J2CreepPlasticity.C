@@ -134,13 +134,13 @@ J2CreepPlasticity::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elast
   ADReal effective_stress_trial = std::sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
   
   // 计算流动方向
-  if (effective_stress_trial > 1e-12)
+  if (effective_stress_trial > 1e-15 || effective_stress_trial < -1e-15)
     _Nc[_qp] = 1.5 * stress_dev / effective_stress_trial;
   else
     _Nc[_qp].zero();
   
   // 求解非塑性蠕变增量（使用径向返回映射）
-  if (effective_stress_trial > 1e-12)
+  if (effective_stress_trial > 1e-15 || effective_stress_trial < -1e-15)
   {
     returnMappingSolve(effective_stress_trial, delta_ec, _console);
   }
@@ -158,7 +158,7 @@ J2CreepPlasticity::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elast
   ADReal effective_stress_np = std::sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
   
   // 更新流动方向
-  if (effective_stress_np > 1e-12)
+  if (effective_stress_np > 1e-15)
     _Nc[_qp] = 1.5 * stress_dev / effective_stress_np;
   else
     _Nc[_qp].zero();
@@ -310,13 +310,13 @@ J2CreepPlasticity::computeResidual(const ADReal & effective_trial_stress, const 
   // 其中 σ_eq^np = σ_eq^el - C * (ε_eq^(cr,np) - ε_eq0^cr)
   
   ADReal ec_current = _ec_old[_qp] + delta_ec;
-  
+  ADReal C = computeElasticModifier();
   // 计算非塑性有效应力
-  ADReal effective_stress_np = effective_trial_stress - delta_ec*computeElasticModifier();
+  ADReal effective_stress_np = effective_trial_stress - delta_ec*C;
   // 计算蠕变率
   ADReal creep_rate = computeCreepRate(effective_stress_np, ec_current);
   // 返回残差
-  ADReal residual = delta_ec - creep_rate * _dt;
+  ADReal residual = creep_rate * _dt - delta_ec;
   
   return residual;
 }
@@ -326,18 +326,19 @@ J2CreepPlasticity::computeDerivative(const ADReal & effective_trial_stress, cons
 {
   // 残差对 delta_ec 的导数
   ADReal ec_current = _ec_old[_qp] + delta_ec;
-  // 计算非塑性有效应力
-  ADReal effective_stress_np = effective_trial_stress - delta_ec*computeElasticModifier();
-  
   // 计算弹性修正系数（用于导数计算）
   ADReal C = computeElasticModifier();
+  // 计算非塑性有效应力
+  ADReal effective_stress_np = effective_trial_stress - delta_ec*C;
+  
+
   
   // 计算蠕变率的导数
   ADReal dg_dsigma = computeCreepRateStressDerivative(effective_stress_np, ec_current);
   ADReal dg_dec = computeCreepRateStrainDerivative(effective_stress_np, ec_current);
   
   // 返回导数: ∂F/∂(δεc) = 1 - Δt * (∂g/∂σ * (-C) + ∂g/∂εc)
-  return 1.0 - _dt * (dg_dsigma * (-C) + dg_dec);
+  return  _dt * (dg_dsigma * (-C) + dg_dec) - 1.0;
 }
 
 Real
@@ -354,7 +355,7 @@ J2CreepPlasticity::computeCreepRate(const ADReal & effective_stress, const ADRea
 {
   // 默认实现：简单的幂律蠕变 g(σ) = A * σ^n
   // 子类应该覆盖这个函数以实现具体的蠕变模型
-  if (effective_stress <= 1e-12)
+  if (effective_stress <= 1e-15)
     return 0.0;
   
   // 临时使用简单的线性关系
@@ -367,7 +368,7 @@ J2CreepPlasticity::computeCreepRateStressDerivative(const ADReal & effective_str
 {
   // 蠕变率对应力的导数
   // 默认实现：对应简单线性关系的导数
-  if (effective_stress <= 1e-12)
+  if (effective_stress <= 1e-15)
     return 0.0;
   
   ADReal A = 1.0e-6; // 蠕变系数

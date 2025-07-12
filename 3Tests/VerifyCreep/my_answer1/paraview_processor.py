@@ -20,13 +20,13 @@ plt.rcParams['axes.unicode_minus'] = False
 # 请根据需要修改以下参数
 
 # 数据文件路径
-DATA_FILE = "elastoplasticity_out.e"
+DATA_FILE = "power_law_creep_out.e"
 
 # 要提取的节点ID列表
 NODE_IDS = [3031,3030,3131,3132]
 
 # 要提取的单元ID列表  
-CELL_IDS = [3000]
+CELL_IDS = [0]
 
 # 时间范围 [开始时间, 结束时间]
 TIME_RANGE = [0.0, 10000.0]  # 增大时间范围，获取后期的塑性应变数据
@@ -35,7 +35,7 @@ TIME_RANGE = [0.0, 10000.0]  # 增大时间范围，获取后期的塑性应变�
 # 数据类型: 'point' 或 'cell'
 FIELD_LIST = [
     # ('d', 'point'),                      # 相场变量
-    ('effective_creep_strain', 'cell'), # 有效塑性应变
+    ('effective_creep', 'cell'), # 有效塑性应变
     ('vonMises', 'cell'), # 有效塑性应变
 ]
 

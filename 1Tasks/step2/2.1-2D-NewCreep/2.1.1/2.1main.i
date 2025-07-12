@@ -1,18 +1,18 @@
 # === 参数研究案例 ===
 
-# conda activate moose && dos2unix 2.1main.i && dos2unix 2.1_Sub.i && mpirun -n 9 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i
+# conda activate moose && dos2unix 2.1main.i && dos2unix 2.1_Sub.i && mpirun -n 14 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i
 # mpirun -n 14 /home/yp/projects/reproduction/reproduction-opt -i 1.1.2main.i --mesh-only KAERI_HANARO_UpperRod1.e
 pellet_E=201.3e9
 pellet_density=10431.0#10431.0*0.85#kg⋅m-3
-pellet_nu = 0.345
+pellet_nu = 0.318
 pellet_thermal_expansion_coef=1e-5#K-1
-Gc = 3 #断裂能
+Gc = 2.896 #断裂能
 grain_size = 10
 pellet_critical_fracture_strength=6.0e7#Pa
 fission_rate = 1.2e19
 
-length_scale_paramete=6e-5
-NNN=1.2
+length_scale_paramete=2e-5
+NNN=0.25
 grid_sizes = '${fparse length_scale_paramete/NNN}'
 
 #几何与网格参数
@@ -315,11 +315,11 @@ pellet_critical_energy = ${fparse Gc}
       # 相场断裂相关参数
       # use_transition_stress = true
       # use_transient_creep = true
-      use_three_shear_modulus = true
+      use_three_shear_modulus = false
       # full_three_shear_modulus_strategy = true
 
-      relative_tolerance = 1e-6 #蠕变的相对残差
-      absolute_tolerance = 1e-7 #蠕变的绝对残差
+      relative_tolerance = 1e-7 #蠕变的相对残差
+      absolute_tolerance = 1e-11 #蠕变的绝对残差
 
       output_properties = 'effective_creep_strain psic_active'
       outputs = exodus 
@@ -408,13 +408,13 @@ power_factor = '${fparse 1000*1/3.1415926/pellet_outer_radius/pellet_outer_radiu
     y = '2.5  6  10  14'
     scale_factor = 1
   []
-  [dt_limit_func]
-    type = ParsedFunction
-    expression = 'if(t < 25000, 5000,
-                    if(t < 100000, 1000,
-                    if(t < 125000, 1000,
-                    if(t < 175000, 5000,1000))))'
-  []
+  # [dt_limit_func]
+  #   type = ParsedFunction
+  #   expression = 'if(t < 25000, 5000,
+  #                   if(t < 100000, 1000,
+  #                   if(t < 125000, 1000,
+  #                   if(t < 175000, 5000,1000))))'
+  # []
 []
 
 [Executioner]
@@ -428,25 +428,46 @@ power_factor = '${fparse 1000*1/3.1415926/pellet_outer_radius/pellet_outer_radiu
   # compute_scaling_once = true  # 每个时间步都重新计算缩放
   # reuse_preconditioner = true
   # reuse_preconditioner_max_linear_its = 20
-  line_search = BT
-  nl_max_its = 10
-  nl_rel_tol = 1e-6 # 非线性求解的相对容差
+  # line_search = BT
+  nl_max_its = 50
+  nl_rel_tol = 5e-6 # 非线性求解的相对容差
   nl_abs_tol = 5e-7 # 非线性求解的绝对容差
   l_tol = 5e-7  # 线性求解的容差
-  l_abs_tol = 1e-7 # 线性求解的绝对容差
+  l_abs_tol = 5e-8 # 线性求解的绝对容差
   l_max_its = 500 # 线性求解的最大迭代次数
   accept_on_max_fixed_point_iteration = true # 达到最大迭代次数时接受解
   dtmin = 1
+  dtmax = 1000
   end_time = 3.7e5 # 总时间24h
 
   fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
-  [TimeStepper]
-    type = FunctionDT
-    function = dt_limit_func
+  [./TimeStepper]
+    type = IterationAdaptiveDT
+    dt = 1000
+    growth_factor = 1.2
+    cutback_factor = 0.8
+    optimal_iterations = 30
+    iteration_window = 10
+  [../]
+[]
+[Adaptivity]
+  initial_marker = marker
+  marker = marker
+  max_h_level = 2
+  [Markers]
+    [marker]
+      type = ValueRangeMarker
+      lower_bound = -1
+      upper_bound = 0.1
+      # buffer_size = 0.2
+      variable = d
+      invert = true
+      third_state = coarsen
+    []
   []
 []
-
 [Outputs]
   exodus = true #表示输出exodus格式文件
   print_linear_residuals = false
+  file_base = '2.1-2D-NewCreep3/1'
 []
