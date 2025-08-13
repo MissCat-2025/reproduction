@@ -5,10 +5,10 @@ density_percent = 0.95
 theoretical_density = '${fparse density_percent*100}'
 
 clad_density=6.59e3#kg⋅m-3
-# clad_elastic_constants=7.52e10#Pa
+clad_elastic_constants=7.52e10#Pa
 clad_nu = 0.33
-# clad_specific_heat=264.5
-# clad_thermal_conductivity = 16
+clad_specific_heat=264.5
+clad_thermal_conductivity = 16
 clad_thermal_expansion_coef=5.0e-6#K-1
 # dt = 50000
 # pellet_critical_fracture_strength=6.0e7#Pa
@@ -333,12 +333,12 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
       coupled_variables = 'T'
       functor_names = 'Cp'
       functor_symbols = 'Cp'
-      expression = 'Cp'
+      expression = 'Cp(T)'
       block = 'inclad outclad'
     []
     [clad_thermal_conductivity]
       type = ADDerivativeParsedMaterial  # 改为ADParsedMaterial
-      property_name = thermal_conductivity
+      property_name = clad_thermal_conductivity
       coupled_variables = 'T'
       expression = '7.51+2.09e-2*T-1.45e-5*T^2 + 7.67e-9*T^3'
       block = 'inclad outclad'
@@ -437,7 +437,7 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
     []
     [clad_elasticity_tensor]
       type = ADComputeVariableIsotropicElasticityTensor
-      youngs_modulus = E_clad
+      youngs_modulus = E
       poissons_ratio = nu
       block = 'inclad outclad'
   []
@@ -480,7 +480,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   [coolant_conductance_in]
     type = PiecewiseLinear
     x = '0 10000000'
-    y = '3200 3200'
+    y = '2900 2900'
     scale_factor = 1         # 保持原有的转换因子
   []
   [coolant_conductance_out]
@@ -507,14 +507,14 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
     #间隙压力随时间的变化
     type = PiecewiseLinear
         x = '0   10000000'
-        y = '1.1 5' #论文的1.1
+        y = '1.8 5'
     scale_factor = 1
   []
   [gap_pressure_outer] #新加的！！！！！！！！！！！！！！！！！！！！！！
     #间隙压力随时间的变化
     type = PiecewiseLinear
         x = '0   10000000'
-        y = '1.1 5'
+        y = '1.8 5'
     scale_factor = 1
   []
 []

@@ -432,9 +432,9 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       # 相场断裂相关参数
       use_transition_stress = false
       # use_transient_creep = true
-      # use_three_shear_modulus = true
-      use_three_shear_modulus = false
-      # full_three_shear_modulus_strategy = true
+      use_three_shear_modulus = true
+      # use_three_shear_modulus = false
+      full_three_shear_modulus_strategy = true
 
       relative_tolerance = 1e-8 #蠕变的相对残差
       absolute_tolerance = 1e-10 #蠕变的绝对残差
