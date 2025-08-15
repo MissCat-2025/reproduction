@@ -1,7 +1,7 @@
 // src/materials/UO2CreepRateExplicit.C
 #include "UO2CreepRateExplicit.h"
 
-registerADMooseObject("raccoonApp", UO2CreepRateExplicit);
+registerADMooseObject("reproductionApp", UO2CreepRateExplicit);
 
 InputParameters
 UO2CreepRateExplicit::validParams()
@@ -16,7 +16,7 @@ UO2CreepRateExplicit::validParams()
   params.addRequiredCoupledVar("vonMisesStress", "The von Mises stress auxiliary variable");
   params.addParam<bool>("consider_transient_creep", false, "Whether to consider transient creep");
   // 是否考虑MATPRO Halden模型，第三项去除温度依赖：https://mooseframework.inl.gov/bison/source/materials/solid_mechanics/UO2CreepUpdate.html
-  params.addParam<bool>("USE_MATPRO_Halden_model", true, "Whether to consider MATPRO Halden model,third term in Eq. (1) removing temperature dependency");
+  params.addParam<bool>("USE_MATPRO_Halden_model", false, "Whether to consider MATPRO Halden model,third term in Eq. (1) removing temperature dependency");
   params.addParam<bool>("USE_transition_stress", false, "Whether to consider transition stress");
   return params;
 }
@@ -36,6 +36,7 @@ UO2CreepRateExplicit::UO2CreepRateExplicit(const InputParameters & parameters)
     _Q2(declareADProperty<Real>("Q2")),
     _Q3(21759.0),
     _creep_rate(declareADProperty<RankTwoTensor>("creep_rate")),
+    _effective_creep(declareADProperty<Real>("effective_creep")),
     _consider_transient_creep(getParam<bool>("consider_transient_creep")),
     _max_stress_time(declareProperty<Real>("max_stress_time")),
     _max_stress_time_old(getMaterialPropertyOld<Real>("max_stress_time")),
@@ -161,7 +162,7 @@ UO2CreepRateExplicit::computeQpProperties()
     const Real transient_factor = 2.5 * std::exp(-1.40e-6 * _max_stress_time[_qp]) + 1.0;
     scalar_rate *= transient_factor;
   }
-  
+  _effective_creep[_qp] = scalar_rate;
   // 使用标量蠕变率和流动方向计算蠕变率张量
   if (stress > 1e-10)
   {

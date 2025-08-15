@@ -1,5 +1,10 @@
 # === 参数研究案例 ===
 # end_time = 8.30e+6
+# mesh_size: 8.00e-5
+# 生成时间: 2025-08-15 21:21:25
+
+# === 参数研究案例 ===
+# end_time = 8.30e+6
 # length_scale_paramete: 4.50e-5
 # 生成时间: 2025-08-14 12:09:07
 
@@ -35,7 +40,7 @@ GcX = 0.9
 pellet_inner_diameter = 10.291         # 芯块内直径mm
 pellet_outer_diameter = 14.627         # 芯块外直径mm
 length_scale_paramete = 4.50e-5
-mesh_size = 7e-5 #网格尺寸即可
+mesh_size = 8.00e-5 #网格尺寸即可
 # length_scale_paramete=${fparse mesh_size}
 n_azimuthal = '${fparse int(3.1415*(pellet_outer_diameter)/mesh_size*1e-3/4)*4}' #int()取整
 n_radial_pellet = '${fparse int((pellet_outer_diameter-pellet_inner_diameter)/mesh_size*1e-3/2)}'
@@ -90,7 +95,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = 'sub_le4_50e-5.i'
+    input_files = 'sub_me8_00e-5.i'
     cli_args = 'l=${length_scale_paramete}'
     execute_on = 'TIMESTEP_END'
         # 强制同步参数
@@ -643,6 +648,12 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   []
 []
 [Outputs]
+  [my_checkpoint]
+    type = Checkpoint
+    time_step_interval = 5    # 每5个时间步保存
+    num_files = 2            # 保留最近4个检查点
+    wall_time_interval = 600 # 每10分钟保存一次（秒）
+  []
   exodus = true #表示输出exodus格式文件
   print_linear_residuals = false
   file_base = '2D-NoFracture/2D'

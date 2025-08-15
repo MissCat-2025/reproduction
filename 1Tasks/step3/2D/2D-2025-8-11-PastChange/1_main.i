@@ -393,6 +393,8 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     [creep_eigenstrain]
       type = UO2CreepEigenstrain
       eigenstrain_name = creep_eigenstrain
+      output_properties = 'effective_creep_strain'
+      outputs = exodus
       block = pellet
     []
     [pellet_strain]

@@ -29,11 +29,11 @@ parameter_matrix = {
     # Gc = 2.896 #断裂能
     # 'length_scale_paramete': [3.5e-5,4e-5,6e-5,8e-5],
     # 'Gc': [4.0,5,7.5,10,15,1,0.1],
-    'length_scale_paramete': [5e-5],
-    'sigma0X': [0.8],
-    'GcX': [0.9,0.8],
-    'pellet_nu':[0.345],
-    'Gc': [4,5,6,7,8,10],
+    'mesh_size': [8e-5],
+    # 'sigma0X': [0.7],
+    # 'GcX': [0.9,0.8],
+    # 'pellet_nu':[0.345],
+    # 'Gc': [4,5,6,7,8,10],
     # 'fission_rate': [3.6e19],
     # 'pellet_critical_fracture_strength':[9e7,8e7,7e7,6e7]
 }

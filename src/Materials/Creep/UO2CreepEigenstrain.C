@@ -1,7 +1,7 @@
 // src/materials/UO2CreepEigenstrain.C
 #include "UO2CreepEigenstrain.h"
 
-registerADMooseObject("raccoonApp", UO2CreepEigenstrain);
+registerADMooseObject("reproductionApp", UO2CreepEigenstrain);
 
 InputParameters
 UO2CreepEigenstrain::validParams()
@@ -18,6 +18,9 @@ UO2CreepEigenstrain::UO2CreepEigenstrain(const InputParameters & parameters)
     _creep_rate(getADMaterialProperty<RankTwoTensor>("creep_rate")),
     _creep_strain(declareADProperty<RankTwoTensor>(_base_name + "creep_strain")),
     _creep_strain_old(getMaterialPropertyOld<RankTwoTensor>(_base_name + "creep_strain")),
+    _effective_creep(getADMaterialProperty<Real>(_base_name + "effective_creep")),
+    _effective_creep_strain(declareADProperty<Real>(_base_name + "effective_creep_strain")),
+    _effective_creep_strain_old(getMaterialPropertyOld<Real>(_base_name + "effective_creep_strain")),
     _consider_psip_active(getParam<bool>("consider_psip_active")),
     _psip_active(declareADProperty<Real>("psip_active")),
     _psip_active_old(getMaterialPropertyOld<Real>("psip_active")),
@@ -29,6 +32,7 @@ void
 UO2CreepEigenstrain::initQpStatefulProperties()
 {
   _creep_strain[_qp].zero();
+  _effective_creep_strain[_qp] = 0.0;
   _eigenstrain[_qp].zero();
   _psip_active[_qp] = 0.0;
 }
@@ -38,7 +42,7 @@ UO2CreepEigenstrain::computeQpEigenstrain()
 {
   // 更新累积蠕变应变
   _creep_strain[_qp] = _creep_strain_old[_qp] + _creep_rate[_qp] * _dt;
-  
+  _effective_creep_strain[_qp] = _effective_creep_strain_old[_qp] + _effective_creep[_qp] * _dt;
   // 设置特征应变
   _eigenstrain[_qp] = _creep_strain[_qp];
   if (_consider_psip_active)

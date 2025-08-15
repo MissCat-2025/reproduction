@@ -23,7 +23,7 @@ DEFAULT_CONFIG = ExportConfig(
     field_list=[
         ('d', '相场变量'),
         # ('T', '温度'),
-        # ('hoop_stress', '环向应力'),
+        ('hoop_stress', '环向应力'),
         # ('thermal_hoop_strain', '环向热应变'),
         # ('mechanical_hoop_strain', '环向机械应变')
     ],

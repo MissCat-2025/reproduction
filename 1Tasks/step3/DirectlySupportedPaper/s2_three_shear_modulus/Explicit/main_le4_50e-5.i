@@ -1,7 +1,7 @@
 # === 参数研究案例 ===
 # end_time = 8.30e+6
 # length_scale_paramete: 4.50e-5
-# 生成时间: 2025-08-14 12:09:07
+# 生成时间: 2025-08-14 18:23:26
 
 # === 参数研究案例 ===
 # end_time = 8.30e+6
@@ -245,18 +245,18 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     boundary = 'y_axis'
     value = 0
   []
-  # [x_in]
-  #   type = DirichletBC
-  #   variable = x
-  #   boundary = 'pellet_outer'
-  #   value = 0.01
-  # []
-  # [x_out]
-  #   type = DirichletBC
-  #   variable = x
-  #   boundary = 'pellet_inner'
-  #   value = 0.01
-  # []
+  [x_in]
+    type = DirichletBC
+    variable = x
+    boundary = 'pellet_outer'
+    value = 0.01
+  []
+  [x_out]
+    type = DirichletBC
+    variable = x
+    boundary = 'pellet_inner'
+    value = 0.01
+  []
 
   #芯块包壳间隙压力
   [gap_pressure_fuel_x]
@@ -434,25 +434,22 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       outputs = exodus
       block = pellet
     []
-    [creep]
-      type = UO2CreepRateBaseJ2Creep
-      phase_field = d
-      degradation_function = g
+    [creep_rate]
+      type = UO2CreepRateExplicit
       temperature = T
       oxygen_ratio = x
       fission_rate = ${fparse fission_rate}
       theoretical_density = ${fparse density_percent100}
       grain_size = ${grain_size}
-      # 相场断裂相关参数
-      use_transition_stress = false
-      # use_transient_creep = true
-      use_three_shear_modulus = false
-
-      relative_tolerance = 1e-8 #蠕变的相对残差
-      absolute_tolerance = 1e-10 #蠕变的绝对残差
-
-      output_properties = 'effective_creep_strain psic_active'
-      outputs = exodus 
+      vonMisesStress = vonMises
+      block = pellet
+    []
+    [creep_eigenstrain]
+      type = UO2CreepEigenstrain
+      eigenstrain_name = creep_eigenstrain
+      output_properties = 'effective_creep_strain'
+      outputs = exodus
+      block = pellet
     []
     [swelling_coef]
       type = ADDerivativeParsedMaterial  # 改为ADParsedMaterial
@@ -497,7 +494,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     [../]
     [pellet_strain]
       type = ADComputePlaneSmallStrain
-      eigenstrain_names = 'thermal_eigenstrain swelling_eigenstrain densification_eigenstrain'
+      eigenstrain_names = 'thermal_eigenstrain swelling_eigenstrain densification_eigenstrain creep_eigenstrain'
       block = pellet
     []
     [crack_geometric]
@@ -519,22 +516,19 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       block = pellet
     []
     [Elasticity]
-      type = IsotropicElasticity
+      type = SmallDeformationIsotropicElasticityThreshold
       youngs_modulus = E
       poissons_ratio = nu
       phase_field = d
       degradation_function = g
       decomposition = SPECTRAL
-      use_threshold = false
-      use_history_max = false
       output_properties = 'psie_active'
       tensile_strength = sigma0
       outputs = exodus
     []
     [stress]
-      type = ComputeCreepPlasticityDeformationStress
+      type = ComputeSmallDeformationStress
       elasticity_model = Elasticity
-      creep_model = creep
     []
 
 []
@@ -564,14 +558,14 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
     #间隙压力随时间的变化
     type = PiecewiseLinear
     x = '0   10000000'
-    y = '1.2 1.3'
+    y = '1.2 10'
     scale_factor = 1
   []
   [gap_pressure_outer] #新加的！！！！！！！！！！！！！！！！！！！！！！
   #间隙压力随时间的变化
   type = PiecewiseLinear
     x = '0 10000000'
-    y = '1.2 1.3'
+    y = '1.2 10'
   scale_factor = 1
 []
 [T_infinity]
@@ -643,6 +637,12 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   []
 []
 [Outputs]
+  [my_checkpoint]
+    type = Checkpoint
+    time_step_interval = 5    # 每5个时间步保存
+    num_files = 2            # 保留最近4个检查点
+    wall_time_interval = 600 # 每10分钟保存一次（秒）
+  []
   exodus = true #表示输出exodus格式文件
   print_linear_residuals = false
   file_base = '2D-NoFracture/2D'

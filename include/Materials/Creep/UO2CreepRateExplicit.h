@@ -36,7 +36,7 @@ protected:
   
   // 蠕变率
   ADMaterialProperty<RankTwoTensor> & _creep_rate;
-  
+  ADMaterialProperty<Real> & _effective_creep;
   // 瞬态蠕变相关属性
   const bool _consider_transient_creep; // 是否考虑瞬态蠕变
   MaterialProperty<Real> & _max_stress_time; // 最大应力应用时间

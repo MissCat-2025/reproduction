@@ -1,6 +1,11 @@
 # === 参数研究案例 ===
 # end_time = 8.30e+6
 # length_scale_paramete: 4.50e-5
+# 生成时间: 2025-08-15 08:14:11
+
+# === 参数研究案例 ===
+# end_time = 8.30e+6
+# length_scale_paramete: 4.50e-5
 # 生成时间: 2025-08-14 12:09:07
 
 # === 参数研究案例 ===
@@ -643,6 +648,12 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   []
 []
 [Outputs]
+  [my_checkpoint]
+    type = Checkpoint
+    time_step_interval = 5    # 每5个时间步保存
+    num_files = 2            # 保留最近4个检查点
+    wall_time_interval = 600 # 每10分钟保存一次（秒）
+  []
   exodus = true #表示输出exodus格式文件
   print_linear_residuals = false
   file_base = '2D-NoFracture/2D'

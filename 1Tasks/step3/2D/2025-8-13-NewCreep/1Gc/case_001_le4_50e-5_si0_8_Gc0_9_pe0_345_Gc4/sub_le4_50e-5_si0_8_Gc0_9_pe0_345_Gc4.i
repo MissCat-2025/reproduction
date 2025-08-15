@@ -1,7 +1,11 @@
 # === 参数研究案例 ===
 # end_time = 8.30e+6
 # length_scale_paramete: 4.50e-5
-# 生成时间: 2025-08-14 12:09:07
+# sigma0X: 0.8
+# GcX: 0.9
+# pellet_nu: 0.345
+# Gc: 4
+# 生成时间: 2025-08-13 18:33:32
 
 [Problem]
   kernel_coverage_check = false

@@ -1,5 +1,10 @@
 # === 参数研究案例 ===
 # end_time = 8.30e+6
+# mesh_size: 9.00e-5
+# 生成时间: 2025-08-15 17:39:43
+
+# === 参数研究案例 ===
+# end_time = 8.30e+6
 # length_scale_paramete: 4.50e-5
 # 生成时间: 2025-08-14 12:09:07
 
@@ -13,7 +18,7 @@
 pellet_inner_diameter = 10.291         # 芯块内直径mm
 pellet_outer_diameter = 14.627         # 芯块外直径mm
 # length_scale_paramete = 4.50e-5
-mesh_size = 7e-5 #网格尺寸即可
+mesh_size = 9.00e-5 #网格尺寸即可
 # length_scale_paramete=${fparse mesh_size}
 n_azimuthal = '${fparse int(3.1415*(pellet_outer_diameter)/mesh_size*1e-3/4)*4}' #int()取整
 n_radial_pellet = '${fparse int((pellet_outer_diameter-pellet_inner_diameter)/mesh_size*1e-3/2)}'

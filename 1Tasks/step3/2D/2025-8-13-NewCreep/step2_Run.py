@@ -21,7 +21,7 @@ OUTPUT_DIR = os.path.join(BASE_DIR, 'parameter_studies')           # 参数研�
 MOOSE_APP = "/home/yp/projects/reproduction/reproduction-opt"               # MOOSE可执行文件路径
 
 # 运行配置
-MPI_PROCESSES = 12       # MPI进程数
+MPI_PROCESSES = 9       # MPI进程数
 TIMEOUT = 36000           # 单个案例超时时间（秒）
 CONDA_ENV = 'moose'      # Conda环境名称
 

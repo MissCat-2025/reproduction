@@ -1,15 +1,10 @@
 # === 参数研究案例 ===
 # end_time = 8.30e+6
 # length_scale_paramete: 4.50e-5
-# 生成时间: 2025-08-14 12:09:07
-
-# === 参数研究案例 ===
-# end_time = 8.30e+6
-# length_scale_paramete: 4.50e-5
 # sigma0X: 0.8
 # GcX: 0.9
 # pellet_nu: 0.345
-# Gc: 6
+# Gc: 5
 # 生成时间: 2025-08-13 18:33:32
 
 # conda activate moose && dos2unix 2D_Main.i&& dos2unix 2D_Sub.i &&mpirun -n 8 /home/yp/projects/reproduction/reproduction-opt -i 2D_Main.i
@@ -18,16 +13,16 @@ pellet_nu = 0.345
 pellet_thermal_expansion_coef=1e-5#K-1
 density_percent = 0.98
 density_percent100 = '${fparse density_percent*100}'
-Gc = 6 #断裂能
+Gc = 5 #断裂能
 # pellet_critical_fracture_strength=9.0e7#Pa
 pellet_critical_fracture_strength='${fparse 1.7*10^8*(1-2.62*(1-density_percent))^0.5*exp(-1590/8.314/initial_T)}'#10431.0*0.85#kg⋅m-3理论密度为10.980
 #(1-2.62*(1-0.98))^0.5 = 0.9734,exp(-1590/8.314/293.15)=0.521,pellet_critical_fracture_strength = 83.9MPa
 #(1-2.62*(1-0.95))^0.5 = 0.9322,exp(-1590/8.314/293.15)=0.521,pellet_critical_fracture_strength = 82.5MPa
 fission_rate=3.6e19
-grain_size = 10
+grain_size = 7
 pellet_critical_energy=${fparse Gc} #J⋅m-2
 pellet_density='${fparse density_percent*10980}'#10431.0*0.85#kg⋅m-3理论密度为10.980
-sigma0X = 0.7
+sigma0X = 0.8
 GcX = 0.9
 #《《下面数据取自[1]Thermomechanical Analysis and Irradiation Test of Sintered Dual-Cooled Annular pellet》》
 
@@ -90,7 +85,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = 'sub_le4_50e-5.i'
+    input_files = 'sub_le4_50e-5_si0_8_Gc0_9_pe0_345_Gc5.i'
     cli_args = 'l=${length_scale_paramete}'
     execute_on = 'TIMESTEP_END'
         # 强制同步参数
@@ -245,18 +240,18 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     boundary = 'y_axis'
     value = 0
   []
-  # [x_in]
-  #   type = DirichletBC
-  #   variable = x
-  #   boundary = 'pellet_outer'
-  #   value = 0.01
-  # []
-  # [x_out]
-  #   type = DirichletBC
-  #   variable = x
-  #   boundary = 'pellet_inner'
-  #   value = 0.01
-  # []
+  [x_in]
+    type = DirichletBC
+    variable = x
+    boundary = 'pellet_outer'
+    value = 0.01
+  []
+  [x_out]
+    type = DirichletBC
+    variable = x
+    boundary = 'pellet_inner'
+    value = 0.01
+  []
 
   #芯块包壳间隙压力
   [gap_pressure_fuel_x]
@@ -446,7 +441,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       # 相场断裂相关参数
       use_transition_stress = false
       # use_transient_creep = true
-      use_three_shear_modulus = false
+      use_three_shear_modulus = true
 
       relative_tolerance = 1e-8 #蠕变的相对残差
       absolute_tolerance = 1e-10 #蠕变的绝对残差
@@ -564,14 +559,14 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
     #间隙压力随时间的变化
     type = PiecewiseLinear
     x = '0   10000000'
-    y = '1.2 1.3'
+    y = '1.2 10'
     scale_factor = 1
   []
   [gap_pressure_outer] #新加的！！！！！！！！！！！！！！！！！！！！！！
   #间隙压力随时间的变化
   type = PiecewiseLinear
     x = '0 10000000'
-    y = '1.2 1.3'
+    y = '1.2 10'
   scale_factor = 1
 []
 [T_infinity]
@@ -643,6 +638,12 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   []
 []
 [Outputs]
+  [my_checkpoint]
+    type = Checkpoint
+    time_step_interval = 5    # 每5个时间步保存
+    num_files = 2            # 保留最近4个检查点
+    wall_time_interval = 600 # 每10分钟保存一次（秒）
+  []
   exodus = true #表示输出exodus格式文件
   print_linear_residuals = false
   file_base = '2D-NoFracture/2D'

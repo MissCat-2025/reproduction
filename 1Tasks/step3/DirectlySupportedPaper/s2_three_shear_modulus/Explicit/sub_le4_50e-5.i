@@ -1,7 +1,7 @@
 # === 参数研究案例 ===
 # end_time = 8.30e+6
 # length_scale_paramete: 4.50e-5
-# 生成时间: 2025-08-14 12:09:07
+# 生成时间: 2025-08-14 18:23:26
 
 [Problem]
   kernel_coverage_check = false
