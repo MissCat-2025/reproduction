@@ -31,11 +31,11 @@ include $(FRAMEWORK_DIR)/moose.mk
 # To use certain physics included with MOOSE, set variables below to
 # yes as needed.  Or set ALL_MODULES to yes to turn on everything (overrides
 # other set variables).
-
+# 排除特定的 MOOSE 源文件
 ALL_MODULES                 := no
 
 CHEMICAL_REACTIONS          := no
-CONTACT                     := no
+CONTACT                     := yes
 ELECTROMAGNETICS            := no
 EXTERNAL_PETSC_SOLVER       := no
 FLUID_PROPERTIES            := no
@@ -75,6 +75,8 @@ ADDITIONAL_INCLUDES += -I$(RACCOON_DIR)/include/kernels
 ADDITIONAL_INCLUDES += -I$(RACCOON_DIR)/include/base
 ADDITIONAL_INCLUDES += -I$(RACCOON_DIR)/include/utils
 ADDITIONAL_LIBS     += -L$(RACCOON_DIR)/lib -lraccoon-$(METHOD)
+
+
 ###############################################################################
 
 # dep apps

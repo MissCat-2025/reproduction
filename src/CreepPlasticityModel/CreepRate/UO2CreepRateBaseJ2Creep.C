@@ -21,7 +21,6 @@ UO2CreepRateBaseJ2Creep::validParams()
   
   // 裂变与材料特性参数
   params.addRequiredParam<Real>("fission_rate", "裂变率密度 (fissions/m^3-s)");
-  params.addParam<Real>("theoretical_density", 95.0, "理论密度百分比");
   params.addParam<Real>("grain_size", 10.0, "晶粒尺寸 (微米)");
   
   // 模型系数
@@ -55,7 +54,7 @@ UO2CreepRateBaseJ2Creep::UO2CreepRateBaseJ2Creep(const InputParameters & paramet
     _temperature(adCoupledValue("temperature")),
     _oxygen_ratio(adCoupledValue("oxygen_ratio")),
     _fission_rate(getParam<Real>("fission_rate")),
-    _theoretical_density(getParam<Real>("theoretical_density")),
+    _density(getADMaterialProperty<Real>("density")),
     _grain_size(getParam<Real>("grain_size")),
     _Q1(0.0),  // 将根据温度和氧化学计量比计算
     _Q2(0.0),  // 将根据温度和氧化学计量比计算
@@ -113,8 +112,8 @@ UO2CreepRateBaseJ2Creep::setQp(unsigned int qp)
   _sigma_trans = 1.6547e7 * std::pow(_grain_size, 0.5714);
   
   // 预计算密度和晶粒尺寸相关项
-  _density_term1 = 1.0 / ((_theoretical_density - _a3) * _grain_size * _grain_size);
-  _density_term2 = 1.0 / (_theoretical_density - _a6);
+  _density_term1 = 1.0 / ((_density[_qp]/10980 - _a3) * _grain_size * _grain_size);
+  _density_term2 = 1.0 / (_density[_qp]/10980 - _a6);
   
   // 预计算裂变率项
   _fission_term = _a1 + _a2 * _fission_rate;

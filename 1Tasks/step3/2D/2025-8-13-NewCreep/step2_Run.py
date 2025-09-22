@@ -21,7 +21,7 @@ OUTPUT_DIR = os.path.join(BASE_DIR, 'parameter_studies')           # 参数研�
 MOOSE_APP = "/home/yp/projects/reproduction/reproduction-opt"               # MOOSE可执行文件路径
 
 # 运行配置
-MPI_PROCESSES = 9       # MPI进程数
+MPI_PROCESSES = 10       # MPI进程数
 TIMEOUT = 36000           # 单个案例超时时间（秒）
 CONDA_ENV = 'moose'      # Conda环境名称
 
@@ -30,10 +30,12 @@ LOG_FILE = 'run.log'     # 运行日志文件名
 PROGRESS_FILE = '.run_progress.json'  # 进度文件名
 
 # 文件匹配模式
-MAIN_PATTERN = "case_*/main_*.i"    # 主程序文件匹配模式
+MAIN_PATTERN = "case_*/[!main_]*.i"    # 主程序文件匹配模式
 SINGLE_PATTERN = "case_*/[!main_]*.i"  # 单程序文件匹配模式
 SUB_PATTERN = "sub_*.i"             # 子程序文件匹配模式
-
+# MAIN_PATTERN = "case_*/main_*.i"    # 主程序文件匹配模式
+# SINGLE_PATTERN = "case_*/[!main_]*.i"  # 单程序文件匹配模式
+# SUB_PATTERN = "sub_*.i"             # 子程序文件匹配模式
 #######################
 # 程序代码
 #######################
@@ -89,22 +91,25 @@ def check_environment():
     return issues
 
 def find_input_files():
-    """查找所有输入文件，支持单程序和多程序模式，并按case编号排序"""
+    """查找所有输入文件，智能检测单程序和多程序模式"""
     cases = []
-    # 查找多程序模式的文件
-    main_files = glob.glob(os.path.join(OUTPUT_DIR, MAIN_PATTERN))
     
-    # 查找单程序模式的文件
-    single_files = [f for f in glob.glob(os.path.join(OUTPUT_DIR, SINGLE_PATTERN))
-                   if not os.path.basename(f).startswith('sub_')]
+    # 查找所有case目录
+    case_dirs = glob.glob(os.path.join(OUTPUT_DIR, "case_*"))
     
-    # 合并所有文件
-    cases.extend(main_files)
-    cases.extend(single_files)
+    for case_dir in case_dirs:
+        # 查找该case目录下的所有.i文件
+        i_files = glob.glob(os.path.join(case_dir, "*.i"))
+        
+        # 过滤掉子程序文件
+        main_files = [f for f in i_files if not os.path.basename(f).startswith('sub_')]
+        
+        # 如果找到文件，添加到列表中
+        if main_files:
+            cases.extend(main_files)
     
     # 按case编号排序
     def get_case_number(file_path):
-        # 从路径中提取case编号
         match = re.search(r'case_(\d+)', file_path)
         return int(match.group(1)) if match else float('inf')
     

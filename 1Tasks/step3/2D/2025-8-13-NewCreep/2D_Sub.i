@@ -1,5 +1,10 @@
 # === 参数研究案例 ===
 # end_time = 8.30e+6
+# mesh_size: 8.00e-5
+# 生成时间: 2025-08-15 21:21:25
+
+# === 参数研究案例 ===
+# end_time = 8.30e+6
 # length_scale_paramete: 4.50e-5
 # 生成时间: 2025-08-14 12:09:07
 
@@ -13,7 +18,10 @@
 pellet_inner_diameter = 10.291         # 芯块内直径mm
 pellet_outer_diameter = 14.627         # 芯块外直径mm
 # length_scale_paramete = 4.50e-5
-mesh_size = 7e-5 #网格尺寸即可
+endTime = 1550000
+endTime__50000 = '${fparse endTime-5000}'
+endTime__100000 = '${fparse endTime-100000}'
+mesh_size = 8.00e-5 #网格尺寸即可
 # length_scale_paramete=${fparse mesh_size}
 n_azimuthal = '${fparse int(3.1415*(pellet_outer_diameter)/mesh_size*1e-3/4)*4}' #int()取整
 n_radial_pellet = '${fparse int((pellet_outer_diameter-pellet_inner_diameter)/mesh_size*1e-3/2)}'
@@ -94,6 +102,10 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     family = MONOMIAL
     order = CONSTANT
   []
+  [sigma0]
+    family = MONOMIAL
+    order = CONSTANT
+  []
 []
 
 [Bounds]
@@ -143,6 +155,13 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
   property_name = a1
   coupled_variables = 'a1'
   expression = 'a1'
+  block = pellet
+[]
+[sigma0]
+  type = ADParsedMaterial
+  property_name = sigma0
+  coupled_variables = 'sigma0'
+  expression = 'sigma0'
   block = pellet
 []
 [Gc1]
@@ -203,10 +222,10 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
   l_tol = 5e-9  # 线性求解的容差
   l_abs_tol = 5e-9 # 线性求解的绝对容差
   l_max_its = 100 # 线性求解的最大迭代次数
-  # abort_on_solve_fail = true
+  abort_on_solve_fail = true
   dtmin = 500
   dtmax = 50000
-  end_time = 8300000 # 总时间24h
+  end_time = ${endTime} # 总时间24h
 
   fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
   [TimeStepper]
@@ -217,10 +236,10 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
 [Functions]
   [dt_limit_func]
     type = ParsedFunction
-    expression = 'if(t < 28000, 2000,
-                   if(t < 105000, 500,
-                   if(t < 8103501, 50000,
-                   if(t < 10000000, 500,50000))))'
+    expression = 'if(t < 16000, 2000,
+                   if(t < 105000, 750,
+                   if(t < ${endTime__100000},50000,
+                   if(t < (${endTime__50000}+20000), 750,10000))))'
   []
 []
 [Adaptivity]
@@ -229,19 +248,19 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
   max_h_level = 2
   [Markers]
     [marker]
-      type = PhasePiledFractureMarker
+      type = PhasePiledFractureHSMarker
       von_mises_variable = hoop_stress
+      sigma0 = sigma0
       x1 = 0.0001 #d变量小于x1时，标记为粗网格
       x2 = 0.05 #d变量在x1和x2之间时，标记为细网格
       xmax = 0.1 #d变量大于xmax时，一定是细网格
-      y1 = 1e7 #vonMises应力小于y1时，标记为粗网格
-      y2 = 1e7 #vonMises应力大于y2之间时，标记为细网格
+      y1 = 0.4 #vonMises应力小于y1时，标记为粗网格
+      y2 = 0.5 #vonMises应力大于y2之间时，标记为细网格
       variable = d
-      enable_time_check = true
-      time_steps = 3
+      timeD = 3
+      timeStress = 5
       d_change_threshold = 0.02
-      # invert = true
-      # third_state = coarsen
+      stress_change_threshold = 1e6
     []
   []
 []

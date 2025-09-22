@@ -1,18 +1,20 @@
-# conda activate moose && dos2unix 2D.i &&mpirun -n 8 /home/yp/projects/reproduction/reproduction-opt -i 2D.i
-pellet_nu = 0.316
-pellet_thermal_expansion_coef=1e-5#K-1
+# conda activate moose && dos2unix 2D.i &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i 2D.i
+initial_T = 583.15
+EndTime = 50000000
+pellet_nu = 0.345
+# pellet_thermal_expansion_coef=1e-5#K-1
 density_percent = 0.95
-theoretical_density = '${fparse density_percent*100}'
+density_percent100 = '${fparse density_percent*100}'
 pellet_density='${fparse density_percent*10980}'#10431.0*0.85#kg⋅m-3理论密度为10.980
 clad_density=6.59e3#kg⋅m-3
-clad_elastic_constants=7.52e10#Pa
-clad_nu = 0.33
-clad_specific_heat=264.5
-clad_thermal_conductivity = 16
+# clad_elastic_constants=7.52e10#Pa
+clad_nu = 0.334
+# clad_specific_heat=264.5
+# clad_thermal_conductivity = 16
 clad_thermal_expansion_coef=5.0e-6#K-1
 # dt = 50000
-# pellet_critical_fracture_strength=6.0e7#Pa
-# fission_rate=2.0e19
+fission_rate=3.6e19
+grain_size = 10
 #conda activate moose && dos2unix Complete2DQuarter.i&&mpirun -n 10 /home/yp/projects/reproduction/reproduction-opt -i Complete2DQuarter.i --mesh-only KAERI_HANARO_UpperRod1.e
 #《《下面数据取自[1]Mechanism study and theoretical simulation on heat split phenomenon in dual-cooled annular fuel element》》
 
@@ -132,6 +134,17 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
     order = CONSTANT
     family = MONOMIAL
   []
+  [./densification_hoop_strain]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+    [./swelling_hoop_strain]
+      order = CONSTANT
+      family = MONOMIAL
+    [../]
+    [x]
+      initial_condition = 0.01
+    []
 []
 
 [AuxKernels]
@@ -144,6 +157,24 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
     point2 = '0 0 -0.0178'        # 定义旋转轴方向（z轴）
     execute_on = 'TIMESTEP_END'
   [../]
+    [./densification_strain]
+      type = ADRankTwoAux
+      variable = densification_hoop_strain
+      rank_two_tensor = densification_eigenstrain
+      index_i = 2
+      index_j = 2  # zz分量对应环向
+      execute_on = 'TIMESTEP_END'
+      block = pellet
+    [../]
+      [./swelling_strain]
+        type = ADRankTwoAux
+        variable = swelling_hoop_strain
+        rank_two_tensor = swelling_eigenstrain
+        index_i = 2
+        index_j = 2  # zz分量对应环向
+        execute_on = 'TIMESTEP_END'
+        block = pellet
+      [../]
     [vonMisesStress]
       type = ADRankTwoScalarAux
       variable = vonMises
@@ -160,10 +191,11 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
     [disp_y]
     []
     [T]
-      initial_condition = 293.15
+      initial_condition = ${initial_T}
     []
     [strain_zz]
     []
+
 []
 [Kernels]
   #力平衡方程
@@ -191,9 +223,9 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
       variable = T
     []
     [Fheat_source]
-      type = HeatSource
+      type = ADMatHeatSource
       variable = T
-      function = power_history
+      material_property = total_power
       block = pellet
     []
 []
@@ -252,14 +284,14 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
     type = ConvectiveFluxFunction
     variable = T
     boundary = 'inclad_inner'
-    T_infinity = 313.15
+    T_infinity = ${initial_T}
     coefficient = coolant_conductance_in#3500 W·m-2 K-1！！！！！！！！！！！！！！！！！！！！！！！！！！！
   []
   [coolant_bc_out]#对流边界条件
   type = ConvectiveFluxFunction
   variable = T
   boundary = 'outclad_outer'
-  T_infinity = 313.15
+  T_infinity = ${initial_T}
   coefficient = coolant_conductance_out#3500 W·m-2 K-1！！！！！！！！！！！！！！！！！！！！！！！！！！！
   []
   #冷却剂压力
@@ -283,7 +315,7 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
     [pellet_properties2]
       type = ADGenericConstantMaterial
       prop_names = 'density nu'
-      prop_values = '${theoretical_density} ${pellet_nu}'
+      prop_values = '${pellet_density} ${pellet_nu}'
       block = pellet
     []
 
@@ -312,7 +344,7 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
     []
     [E_clad_elastic_constants]
       type = ADParsedMaterial
-      property_name = E_clad #Fink model
+      property_name  = E #Fink model
       coupled_variables = 'T'  # 需要在AuxVariables中定义Y变量
       expression = '-46.67e6 * T + 1.09e11'
       block = 'inclad outclad' 
@@ -330,12 +362,12 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
       coupled_variables = 'T'
       functor_names = 'Cp'
       functor_symbols = 'Cp'
-      expression = 'Cp(T)'
+      expression = 'Cp'
       block = 'inclad outclad'
     []
     [clad_thermal_conductivity]
       type = ADDerivativeParsedMaterial  # 改为ADParsedMaterial
-      property_name = clad_thermal_conductivity
+      property_name = thermal_conductivity
       coupled_variables = 'T'
       expression = '7.51+2.09e-2*T-1.45e-5*T^2 + 7.67e-9*T^3'
       block = 'inclad outclad'
@@ -346,38 +378,21 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
     [clad_thermal_eigenstrain]
       type = ADComputeThermalExpansionEigenstrain
       eigenstrain_name = thermal_eigenstrain
-      stress_free_temperature = 293.15
+      stress_free_temperature = ${initial_T}
       thermal_expansion_coeff = ${clad_thermal_expansion_coef}
       temperature = T
       block = 'inclad outclad'
     []
-
-    [pellet_thermal_eigenstrain]
-      type = ADComputeThermalExpansionEigenstrain
-      eigenstrain_name = thermal_eigenstrain
-      stress_free_temperature = 293.15
-      thermal_expansion_coeff = ${pellet_thermal_expansion_coef}
-      temperature = T
-      block = pellet
-    []
     # 肿胀应变函数
     [total_power]
-      type = ADDerivativeParsedMaterial
-      property_name = total_power
-      functor_names = 'power_history'  # 声明使用的函数
-      functor_symbols = 'P'  # 为函数指定符号名称
-      expression = 'P'  # 直接使用函数符号进行计算
-      derivative_order = 1  # 需要计算导数时指定
+      type = ADRimEffertPowerBurnup
+      # property_name = total_power
+      power_history = 'power_history'  # 声明使用的函数
+      pellet_inner_radius = ${pellet_inner_radius}  # 为函数指定符号名称
+      pellet_outer_radius = ${pellet_outer_radius}  # 直接使用函数符号进行计算
+      initial_density = ${pellet_density}
       block = pellet
-      output_properties = 'total_power'
-      outputs = exodus
-    []
-    [burnup]
-      type = ADBurnupMaterial
-      total_power = total_power
-      initial_density = ${theoretical_density}
-      block = pellet
-      output_properties = 'burnup'
+      output_properties = 'total_power burnup radial_power_shape'
       outputs = exodus
     []
 
@@ -386,16 +401,30 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
       property_name = swelling_coef
       coupled_variables = 'T'
       material_property_names = 'burnup'
-      expression = '(${theoretical_density}*5.577e-5*burnup + 1.101e-29*pow(2800-T,11.73)*exp(-0.0162*(2800-T))*(1-exp(-0.0178*${theoretical_density}*burnup)))/3'
+      expression = '(${pellet_density}*5.577e-5*burnup + 1.101e-29*pow(2800-T,11.73)*exp(-0.0162*(2800-T))*(1-exp(-0.0178*${pellet_density}*burnup)))/3'
       block = pellet
     []
     # 密实化温度因子函数
+    [CD_factor]
+      type = ADParsedMaterial
+      property_name = CD_factor
+      coupled_variables = 'T'
+      expression = 'if(T < 1023.15, 7.2-0.0086*(T-298.15),1)'
+      block = pellet
+    []
     [densification_coef]
       type = ADDerivativeParsedMaterial  # 改为ADParsedMaterial
       property_name = densification_coef
       coupled_variables = 'T'
-      material_property_names = 'CD_factor burnup'
-      expression = '0.005 * (exp(-4.605 * (burnup*1) / (CD_factor * 0.006024)) - 1)/3'# 0.6024是5000MWd/tU的转换系数
+      material_property_names = 'CD_factor(T) burnup'
+      expression = '0.001 * (exp(-4.605 * (burnup*1) / (CD_factor * 0.006024)) - 1)/3'# 0.6024是5000MWd/tU的转换系数
+      block = pellet
+    []
+    [thermal_eigenstrain_coef]
+      type = ADDerivativeParsedMaterial  # 改为ADParsedMaterial
+      property_name = thermal_eigenstrain_coef
+      coupled_variables = 'T'
+      expression = '-4.972e-4+7.107e-6*T+2.581e-9*T^2+1.14e-13*T^3'# 0.6024是5000MWd/tU的转换系数
       block = pellet
     []
     # 肿胀应变计算
@@ -406,6 +435,14 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
       eigenstrain_name = swelling_eigenstrain
       block = pellet
     [../]
+    # 肿胀应变计算
+    [thermal_eigenstrain]
+      type = ADComputeVariableFunctionEigenstrain
+      eigen_base = '1 1 1 0 0 0'
+      prefactor = thermal_eigenstrain_coef
+      eigenstrain_name = thermal_eigenstrain
+      block = pellet
+    [../]
 
     # 密实化应变计算
     [densification_eigenstrain]
@@ -413,12 +450,29 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
       eigen_base = '1 1 1 0 0 0'
       prefactor = densification_coef
       eigenstrain_name = densification_eigenstrain
+      
       block = pellet
     [../]
-
+      [creep_rate]
+        type = UO2CreepRateExplicit
+        temperature = T
+        oxygen_ratio = x
+        fission_rate = ${fparse fission_rate}
+        theoretical_density = ${fparse density_percent100}
+        grain_size = ${grain_size}
+        vonMisesStress = vonMises
+        block = pellet
+      []
+      [creep_eigenstrain]
+        type = UO2CreepEigenstrain
+        eigenstrain_name = creep_eigenstrain
+        output_properties = 'effective_creep_strain'
+        outputs = exodus
+        block = pellet
+      []
     [pellet_strain]
       type = ADComputePlaneSmallStrain 
-      eigenstrain_names = 'thermal_eigenstrain swelling_eigenstrain densification_eigenstrain'
+      eigenstrain_names = 'thermal_eigenstrain swelling_eigenstrain densification_eigenstrain creep_eigenstrain'
       block = 'pellet'
     []
     [clad_strain]
@@ -441,6 +495,7 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
     [stress]
       type = ADComputeLinearElasticStress
     []
+    
 []
 
 [ThermalContact]
@@ -449,10 +504,12 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
     variable = T
     primary = inclad_outer
     secondary = pellet_inner
-    emissivity_primary = 0.8
-    emissivity_secondary = 0.8
-    gap_conductivity = 6000
+    emissivity_primary = 0.78
+    emissivity_secondary = 0.82
+    gap_conductance = 4800
+    # gap_conductance_function = gap_conductance_function_in
     quadrature = true
+    min_gap = 6.349e-7
     gap_geometry_type = CYLINDER
     cylinder_axis_point_1 = '0 0 -0.0001'
     cylinder_axis_point_2 = '0 0 0.0001'
@@ -462,10 +519,12 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
       variable = T
       primary = outclad_inner
       secondary = pellet_outer
-      emissivity_primary = 0.8
-      emissivity_secondary = 0.8
-      gap_conductivity = 6000
+      emissivity_primary = 0.78
+      emissivity_secondary = 0.82
+      gap_conductance = 4800
+      gap_conductance_function = gap_conductance_function_out
       quadrature = true
+      min_gap = 6.349e-7
       gap_geometry_type = CYLINDER
       cylinder_axis_point_1 = '0 0 -0.0001'
       cylinder_axis_point_2 = '0 0 0.0001'
@@ -476,55 +535,73 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
 [Functions]
   [coolant_conductance_in]
     type = PiecewiseLinear
-    x = '0 10000000'
-    y = '2900 2900'
+    x = '0 ${EndTime}'
+    y = '34000 34000'
     scale_factor = 1         # 保持原有的转换因子
   []
   [coolant_conductance_out]
     type = PiecewiseLinear
-    x = '0 10000000'
-    y = '3200 3200'
+    x = '0 ${EndTime}'
+    y = '34000 34000'
     scale_factor = 1         # 保持原有的转换因子
   []
   [power_history] #新加的！！！！！！！！！！！！！！！！！！！！！！
     type = PiecewiseLinear
-    data_file = power_history.csv    # 创建一个包含上述数据的CSV文件，数据为<s,w/m>
-    format = columns                 # 指定数据格式为列式
+    x = '0   ${EndTime}'
+    y = '90 90'
     scale_factor = ${power_factor}         # 保持原有的转换因子
     # 论文中只给了线密度，需要化为体积密度
   []
   [Cp] #新加的！！！！！！！！！！！！！！！！！！！！！！
     type = PiecewiseLinear
-    data_file = clad_Cp.csv    # 创建一个包含上述数据的CSV文件，数据为<s,w/m>
-    format = columns                 # 指定数据格式为列式
-    scale_factor = 1         # 保持原有的转换因子
-    # 论文中只给了线密度，需要化为体积密度
+        x = '100 300 400 640 1090 1093 1113 1133 1153 1173 1193 1213 1233 1248 2500'
+        y = '281 281 302 331 375 502 590 615 719 816 770 619 469 356 356'
+    scale_factor = 1
   []
+
   [gap_pressure_inner] #新加的！！！！！！！！！！！！！！！！！！！！！！
     #间隙压力随时间的变化
     type = PiecewiseLinear
-        x = '0   10000000'
-        y = '1.5 1.6'
+        x = '0   ${EndTime}'
+        y = '1.5 1.5'
     scale_factor = 1
   []
   [gap_pressure_outer] #新加的！！！！！！！！！！！！！！！！！！！！！！
     #间隙压力随时间的变化
     type = PiecewiseLinear
-        x = '0   10000000'
-        y = '1.5 1.6'
+        x = '0   ${EndTime}'
+        y = '1.5 1.5'
+    scale_factor = 1
+  []
+  [gap_conductance_function_in]
+    type = PiecewiseLinear
+    data_file = '../../.././AllConductance.csv'
+    format = columns  # CSV 数据格式为列式
+    x_index_in_file = 8  # 0.5innerBu 列（第3列，索引从0开始）
+    y_index_in_file = 9  # 0.5innerConductance 列（第4列，索引从0开始）
+    xy_in_file_only = false
+    scale_factor = 1
+  []
+  [gap_conductance_function_out]
+    type = PiecewiseLinear
+    data_file = '../../.././AllConductance.csv'
+    format = columns  # CSV 数据格式为列式
+    x_index_in_file = 2  # 0.5outerBu 列（第3列，索引从0开始）
+    y_index_in_file = 3  # 0.5outerConductance 列（第4列，索引从0开始）
+    xy_in_file_only = false
     scale_factor = 1
   []
 []
 
 [Executioner]
   type = Transient # 瞬态求解器
-  # solve_type = 'PJFNK' #求解器，PJFNK是预处理雅可比自由牛顿-克雷洛夫方法
-  # petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type'
-  # petsc_options_value = '201                hypre    boomeramg'  
+  solve_type = 'PJFNK' #求解器，PJFNK是预处理雅可比自由牛顿-克雷洛夫方法
+  petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type'
+  petsc_options_value = '201                hypre    boomeramg'  
   # solve_type = 'NEWTON'
-  solve_type = 'NEWTON'
-  petsc_options_iname = '-pc_type   -snes_type        -snes_qn_type   -snes_qn_scale_type -snes_linesearch_type' 
-  petsc_options_value = 'lu         qn               lbfgs           jacobian           bt'
+  # solve_type = 'NEWTON'
+  # petsc_options_iname = '-pc_type   -snes_type        -snes_qn_type   -snes_qn_scale_type -snes_linesearch_type' 
+  # petsc_options_value = 'lu         qn               lbfgs           jacobian           bt'
   # petsc_options_iname = '-pc_type -ksp_type' 
   # petsc_options_value = 'lu gmres' 
   automatic_scaling = true # 启用自动缩放功能，有助于改善病态问题的收敛性
@@ -539,14 +616,14 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   l_max_its = 500 # 线性求解的最大迭代次数
   accept_on_max_fixed_point_iteration = true # 达到最大迭代次数时接受解
   dtmin = 1e-6
-  dtmax = 10000
-  end_time = 10000000 # 总时间24h
+  dtmax = 100000
+  end_time = ${EndTime} # 总时间24h
 
   fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
   [./TimeStepper]
     type = IterationAdaptiveDT
     dt = 100
-    growth_factor = 1.1
+    growth_factor = 10
     cutback_factor = 0.5
     optimal_iterations = 100
     iteration_window = 25
@@ -555,6 +632,12 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
 
 [Postprocessors]
   # 已有
+  [burnup_avg]
+    type = ElementAverageValue
+    variable = burnup
+    block = pellet
+    execute_on = 'TIMESTEP_END'
+  []
   [pellet_inner_heat_rate]
     type = ADSideDiffusiveFluxIntegral
     variable = T
@@ -575,10 +658,22 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
     boundary = pellet_inner
     execute_on = 'TIMESTEP_END'
   []
+  [inclad_outer_T_avg]
+    type = SideAverageValue
+    variable = T
+    boundary = inclad_outer
+    execute_on = 'TIMESTEP_END'
+  []
   [pellet_outer_T_avg]
     type = SideAverageValue
     variable = T
     boundary = pellet_outer
+    execute_on = 'TIMESTEP_END'
+  []
+  [outclad_inner_T_avg]
+    type = SideAverageValue
+    variable = T
+    boundary = outclad_inner
     execute_on = 'TIMESTEP_END'
   []
   [pellet_inner_perimeter]
@@ -597,10 +692,20 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
     expression = 'abs(pellet_inner_heat_rate) / (pellet_inner_perimeter*max(pellet_inner_T_avg - 313.15, 1e-6))'
     pp_names = 'pellet_inner_heat_rate pellet_inner_T_avg pellet_inner_perimeter'
   []
+  [h_gap_eq_inner]
+    type = ParsedPostprocessor
+    expression = 'abs(pellet_inner_heat_rate) / (pellet_inner_perimeter*max(pellet_inner_T_avg - inclad_outer_T_avg, 1e-6))'
+    pp_names = 'pellet_inner_heat_rate pellet_inner_T_avg pellet_inner_perimeter inclad_outer_T_avg'
+  []
   [h_eq_outer]
     type = ParsedPostprocessor
     expression = 'abs(pellet_outer_heat_rate) / (pellet_outer_perimeter*max(pellet_outer_T_avg - 313.15, 1e-6))'
     pp_names = 'pellet_outer_heat_rate pellet_outer_T_avg pellet_outer_perimeter'
+  []
+  [h_gap_eq_outer]
+    type = ParsedPostprocessor
+    expression = 'abs(pellet_outer_heat_rate) / (pellet_outer_perimeter*max(pellet_outer_T_avg - outclad_inner_T_avg, 1e-6))'
+    pp_names = 'pellet_outer_heat_rate pellet_outer_T_avg pellet_outer_perimeter outclad_inner_T_avg'
   []
   [pellet_T_max]
     type = ElementExtremeValue
@@ -614,11 +719,13 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
 [Outputs]
   exodus = true #表示输出exodus格式文件
   print_linear_residuals = false
-  file_base = '2D-NoFracture/2D'
+  file_base = 'gap_conductance1/2D'
   # csv = true
   [./csv]
     type = CSV
+    precision = 5  # 默认保留1位小数
     execute_on = 'TIMESTEP_END'
-    show = 'h_eq_inner h_eq_outer pellet_inner_T_avg pellet_T_max pellet_outer_T_avg'
+    show = 'burnup_avg h_eq_inner h_eq_outer h_gap_eq_inner h_gap_eq_outer pellet_inner_T_avg pellet_T_max pellet_outer_T_avg'
   [../]
+  
 []

@@ -53,7 +53,7 @@ protected:
   
   // 裂变率和材料特性参数
   const Real _fission_rate;
-  const Real _theoretical_density;
+  const ADMaterialProperty<Real> & _density;
   const Real _grain_size;
   
   // 激活能（温度依赖）
