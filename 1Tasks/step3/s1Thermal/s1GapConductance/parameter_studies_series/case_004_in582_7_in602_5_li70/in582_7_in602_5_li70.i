@@ -1,6 +1,16 @@
+# === 参数研究案例（对齐配对） ===
+# end_time = 1.00e+8
+# initial_T: 582.7
+# initial_T_out: 602.5
+# linePower: 70
+# 生成时间: 2025-09-23 16:11:27
+
+
 # conda activate moose && dos2unix 2D.i &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i 2D.i
-initial_T = 583.15
-EndTime = 150000000
+initial_T = 582.7
+initial_T_out = 602.5
+linePower = 70
+EndTime = 1e8
 pellet_nu = 0.345
 # pellet_thermal_expansion_coef=1e-5#K-1
 density_percent = 0.95
@@ -16,9 +26,9 @@ clad_thermal_expansion_coef=5.0e-6#K-1
 fission_rate=2.0e19
 grain_size = 10
 gap1 = 0.6
-gap2 = 0.6
+gap2 = 0.58
 min_gap = 8e-6
-gap3 = 0.2
+gap3 = 0.3
 #conda activate moose && dos2unix Complete2DQuarter.i&&mpirun -n 10 /home/yp/projects/reproduction/reproduction-opt -i Complete2DQuarter.i --mesh-only KAERI_HANARO_UpperRod1.e
 #《《下面数据取自[1]Mechanism study and theoretical simulation on heat split phenomenon in dual-cooled annular fuel element》》
 
@@ -297,7 +307,7 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
       use_displaced_mesh = true
     []
 
-  [coolant_bc_in]#对流边界条件
+    [coolant_bc_in]#对流边界条件
     type = ConvectiveFluxFunction
     variable = T
     boundary = 'inclad_inner'
@@ -305,11 +315,11 @@ outer_clad_outer_radius = '${fparse outclad_outer_diameter/2*1e-3}'
     coefficient = coolant_conductance_in#3500 W·m-2 K-1！！！！！！！！！！！！！！！！！！！！！！！！！！！
   []
   [coolant_bc_out]#对流边界条件
-  type = ConvectiveFluxFunction
-  variable = T
-  boundary = 'outclad_outer'
-  T_infinity = ${initial_T}
-  coefficient = coolant_conductance_out#3500 W·m-2 K-1！！！！！！！！！！！！！！！！！！！！！！！！！！！
+    type = ConvectiveFluxFunction
+    variable = T
+    boundary = 'outclad_outer'
+    T_infinity = ${initial_T_out}
+    coefficient = coolant_conductance_out#3500 W·m-2 K-1！！！！！！！！！！！！！！！！！！！！！！！！！！！
   []
   #冷却剂压力
   [colden_pressure_fuel_x]
@@ -535,7 +545,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pow(pellet_outer_radius,2)-pow(pellet
   [power_history] #新加的！！！！！！！！！！！！！！！！！！！！！！
     type = PiecewiseLinear
     x = '0   ${EndTime}'
-    y = '90 90'
+    y = '${linePower} ${linePower}'
     scale_factor = ${power_factor}         # 保持原有的转换因子
     # 论文中只给了线密度，需要化为体积密度
   []
@@ -571,7 +581,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pow(pellet_outer_radius,2)-pow(pellet
   [gap_COUDUCTANCEOut] #新加的！！！！！！！！！！！！！！！！！！！！！！
     #间隙压力随时间的变化
     type = PiecewiseLinear
-        x = '0 1e+06 1.46e7 3e7 ${EndTime}'
+        x = '0 1e6 1.46e7 3e7 ${EndTime}'
         y = '1.0 0.43 ${gap1} ${gap2} ${gap3}'
     scale_factor = 1
   []
@@ -682,7 +692,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pow(pellet_outer_radius,2)-pow(pellet
   []
   [h_eq_outer]
     type = ParsedPostprocessor
-    expression = 'abs(pellet_outer_heat_rate) / (pellet_outer_perimeter*max(pellet_outer_T_avg - ${initial_T}, 1))'
+    expression = 'abs(pellet_outer_heat_rate) / (pellet_outer_perimeter*max(pellet_outer_T_avg - ${initial_T_out}, 1))'
     pp_names = 'pellet_outer_heat_rate pellet_outer_T_avg pellet_outer_perimeter'
   []
   [h_gap_eq_outer]
@@ -697,9 +707,28 @@ power_factor = '${fparse 1000*1/3.1415926/(pow(pellet_outer_radius,2)-pow(pellet
     block = pellet
     execute_on = 'TIMESTEP_END'
   []
+  # 接触压力（法向拉格朗日乘子）的区域平均值
+  [contact_pressure_in_avg]
+    type = ElementAverageValue
+    variable = interfaceIn_normal_lm
+    block = interfaceIn_secondary_subdomain
+    execute_on = 'TIMESTEP_END'
+  []
+  [contact_pressure_out_avg]
+    type = ElementAverageValue
+    variable = interfaceOut_normal_lm
+    block = interfaceOut_secondary_subdomain
+    execute_on = 'TIMESTEP_END'
+  []
 []
 
 [Outputs]
+  [my_checkpoint]
+    type = Checkpoint
+    time_step_interval = 5    # 每5个时间步保存
+    num_files = 2            # 保留最近4个检查点
+    wall_time_interval = 600 # 每10分钟保存一次（秒）
+  []
   exodus = true #表示输出exodus格式文件
   print_linear_residuals = false
   file_base = 'gap_conductance1/2D'
@@ -708,7 +737,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pow(pellet_outer_radius,2)-pow(pellet
     type = CSV
     precision = 5  # 默认保留1位小数
     execute_on = 'TIMESTEP_END'
-    show = 'burnup_avg h_eq_inner h_eq_outer h_gap_eq_inner h_gap_eq_outer pellet_inner_T_avg pellet_T_max pellet_outer_T_avg'
+    show = 'burnup_avg h_eq_inner h_eq_outer h_gap_eq_inner h_gap_eq_outer pellet_inner_T_avg pellet_T_max pellet_outer_T_avg contact_pressure_in_avg contact_pressure_out_avg'
   [../]
 []
 
