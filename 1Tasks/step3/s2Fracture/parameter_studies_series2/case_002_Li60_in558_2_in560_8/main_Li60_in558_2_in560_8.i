@@ -1,21 +1,21 @@
 # === 参数研究案例（对齐配对） ===
-# LinearPower: 10
-# initial_T_in: 589.5
-# initial_T_out: 611.8
+# LinearPower: 60
+# initial_T_in: 558.2
+# initial_T_out: 560.8
 # 生成时间: 2025-09-23 18:08:10
 
 
 # conda activate moose && dos2unix 2D_Main.i&& dos2unix 2D_Sub.i &&mpirun -n 2 /home/yp/projects/reproduction/reproduction-opt -i 2D_Main.i
 initial_T = 293.15
-initial_T_in = 589.5
-initial_T_out = 611.8
-LinearPower = 10
+initial_T_in = 558.2
+initial_T_out = 560.8
+LinearPower = 60
 LinearPower0_2 = '${fparse LinearPower*0.2}'
 endTime = 5e7
-endTime__50000 = '${fparse endTime-50000}'
+endTime__50000 = '${fparse endTime-5000}'
 endTime__100000 = '${fparse endTime-150000}'
 Pressure1 = 1.1e6
-Pressure2 = 4e6
+Pressure2 = 1.5e6
 pellet_nu = 0.345
 pellet_thermal_expansion_coef=1e-5#K-1
 density_percent = 0.95
@@ -31,7 +31,7 @@ grain_size =10
 pellet_critical_energy=${fparse Gc} #J⋅m-2
 pellet_density='${fparse density_percent*10980}'#10431.0*0.85#kg⋅m-3理论密度为10.980
 GcX = 0.5
-largestPoreSize = 75
+largestPoreSize = 100
 
 #《《下面数据取自[1]Thermomechanical Analysis and Irradiation Test of Sintered Dual-Cooled Annular pellet》》
 
@@ -94,7 +94,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = 'sub_Li10_in589_5_in611_8.i'
+    input_files = 'sub_Li60_in558_2_in560_8.i'
     cli_args = 'l=${length_scale_paramete}'
     execute_on = 'TIMESTEP_END'
         # 强制同步参数
@@ -329,7 +329,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       type = ADDerivativeParsedMaterial
       property_name = largestPoreSize
       material_property_names = 'burnup'
-      expression = 'PS*(1+burnup/0.03)'
+      expression = 'PS*(1+burnup/0.05)'
       constant_names = 'PS'
       constant_expressions = '${largestPoreSize}'
       block = pellet
@@ -558,7 +558,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
 [Functions]
   [gap_conductance_in]
     type = PiecewiseLinear
-    data_file = '../../../s1Thermal/s1GapConductance/parameter_studies_series/case_005_in589_5_in611_8_li10/gap_conductance1/2D.csv'
+    data_file = '../../../s1Thermal/s1GapConductance/parameter_studies_series/case_002_in558_2_in560_8_li60/gap_conductance1/2D.csv'
     x_index_in_file = 0
     y_index_in_file = 4
     xy_in_file_only = false
@@ -567,7 +567,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   []
   [gap_conductance_out]
     type = PiecewiseLinear
-    data_file = '../../../s1Thermal/s1GapConductance/parameter_studies_series/case_005_in589_5_in611_8_li10/gap_conductance1/2D.csv'
+    data_file = '../../../s1Thermal/s1GapConductance/parameter_studies_series/case_002_in558_2_in560_8_li60/gap_conductance1/2D.csv'
     x_index_in_file = 0
     y_index_in_file = 5
     xy_in_file_only = false
@@ -587,7 +587,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   # 接触压力（来自热-接触计算的CSV）
   [contact_pressure_outer_from_csv]
     type = PiecewiseLinear
-    data_file = '../../../s1Thermal/s1GapConductance/parameter_studies_series/case_005_in589_5_in611_8_li10/gap_conductance1/2D.csv'
+    data_file = '../../../s1Thermal/s1GapConductance/parameter_studies_series/case_002_in558_2_in560_8_li60/gap_conductance1/2D.csv'
     x_index_in_file = 0
     y_index_in_file = 3
     xy_in_file_only = false
@@ -615,13 +615,13 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   y = '293.15 ${initial_T_out} ${initial_T_out} 293.15 293.15'
   scale_factor = 1
 []
-[dt_limit_func]
-  type = ParsedFunction
-  expression = 'if(t < 16000, 2000,
-                 if(t < 105000, 750,
-                 if(t < ${endTime__100000},50000,
-                 if(t < (${endTime__50000}+10000), 750,10000))))'
-[]
+  [dt_limit_func]
+    type = ParsedFunction
+    expression = 'if(t < 16000, 2000,
+                   if(t < 110000, 750,
+                   if(t < ${endTime__100000},50000,
+                   if(t < (${endTime__50000}+20000), 750,10000))))'
+  []
 []
 
 [Executioner]
@@ -721,6 +721,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
 #     pp_names = 'pellet_area pellet_area0_full'
 #     expression = '4*pellet_area/pellet_area0_full'
 #   []
+
 # []
 [Outputs]
   [my_checkpoint]

@@ -1,31 +1,37 @@
-# === 参数研究案例 ===
-# LinearPower: 80
-# 生成时间: 2025-08-23 13:15:02
+# === 参数研究案例（对齐配对） ===
+# LinearPower: 60
+# initial_T_in: 558.2
+# initial_T_out: 560.8
+# 生成时间: 2025-09-23 18:08:10
 
 
 # conda activate moose && dos2unix 2D_Main.i&& dos2unix 2D_Sub.i &&mpirun -n 2 /home/yp/projects/reproduction/reproduction-opt -i 2D_Main.i
 initial_T = 293.15
-initial_T_in = 570.7
-initial_T_out = 582.8
-LinearPower = 80
+initial_T_in = 558.2
+initial_T_out = 560.8
+LinearPower = 60
 LinearPower0_2 = '${fparse LinearPower*0.2}'
-endTime = 1550000
+endTime = 5e7
+endTime__50000 = '${fparse endTime-5000}'
+endTime__100000 = '${fparse endTime-150000}'
+Pressure1 = 1.1e6
+Pressure2 = 1.5e6
 pellet_nu = 0.345
 pellet_thermal_expansion_coef=1e-5#K-1
 density_percent = 0.95
-Gc = 5#断裂能
-Pressure1 = 1.5
+Gc = 3#断裂能
+
 # pellet_critical_fracture_strength=9.0e7#Pa
 # pellet_critical_fracture_strength='${fparse 1.7*10^8*(1-2.62*(1-density_percent))^0.5*exp(-1590/8.314/initial_T)}'#10431.0*0.85#kg⋅m-3理论密度为10.980
 #(1-2.62*(1-0.98))^0.5 = 0.9734,exp(-1590/8.314/293.15)=0.521,pellet_critical_fracture_strength = 83.9MPa
 #(1-2.62*(1-0.98))^0.5 = 0.9734,exp(-1590/8.314/293.15)=0.727,pellet_critical_fracture_strength = 120MPa
 #(1-2.62*(1-0.95))^0.5 = 0.9322,exp(-1590/8.314/293.15)=0.521,pellet_critical_fracture_strength = 82.5MPa
-fission_rate=7.20e19
+fission_rate=3.60e19
 grain_size =10
 pellet_critical_energy=${fparse Gc} #J⋅m-2
 pellet_density='${fparse density_percent*10980}'#10431.0*0.85#kg⋅m-3理论密度为10.980
 GcX = 0.5
-largestPoreSize = 30
+largestPoreSize = 50
 
 #《《下面数据取自[1]Thermomechanical Analysis and Irradiation Test of Sintered Dual-Cooled Annular pellet》》
 
@@ -88,7 +94,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = 'sub_Li80.i'
+    input_files = 'sub_Li60_in558_2_in560_8.i'
     cli_args = 'l=${length_scale_paramete}'
     execute_on = 'TIMESTEP_END'
         # 强制同步参数
@@ -241,16 +247,16 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     type = Pressure
     variable = disp_x
     boundary = 'pellet_inner'
-    factor = 1.0e6
-    function = gap_pressure_inner
+    factor = 1
+    function = gap_pressure_const
     # use_displaced_mesh = true
   []
   [gap_pressure_fuel_y]
     type = Pressure
     variable = disp_y
     boundary = 'pellet_inner'
-    factor = 1.0e6
-    function = gap_pressure_inner
+    factor = 1
+    function = gap_pressure_const
     # use_displaced_mesh = true
   []
 
@@ -259,17 +265,33 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       type = Pressure
       variable = disp_x
       boundary = 'pellet_outer'
-      factor = 1.0e6
-      function = gap_pressure_outer
+      factor = 1
+      function = contact_pressure_outer_from_csv
       # use_displaced_mesh = true
     []
     [gap_pressure_pellet_outery]
       type = Pressure
       variable = disp_y
       boundary = 'pellet_outer'
-      factor = 1.0e6
-      function = gap_pressure_outer
+      factor = 1
+      function = contact_pressure_outer_from_csv
       # use_displaced_mesh = true
+    []
+
+    # 叠加常数间隙压力（与上面接触压力相加）
+    [gap_pressure_pellet_outerx_const]
+      type = Pressure
+      variable = disp_x
+      boundary = 'pellet_outer'
+      factor = 1
+      function = gap_pressure_const
+    []
+    [gap_pressure_pellet_outery_const]
+      type = Pressure
+      variable = disp_y
+      boundary = 'pellet_outer'
+      factor = 1
+      function = gap_pressure_const
     []
 
   [coolant_bc_in]#对流边界条件
@@ -307,7 +329,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       type = ADDerivativeParsedMaterial
       property_name = largestPoreSize
       material_property_names = 'burnup'
-      expression = 'PS*(1+burnup/0.001)'
+      expression = 'PS*(1+burnup/0.06)'
       constant_names = 'PS'
       constant_expressions = '${largestPoreSize}'
       block = pellet
@@ -382,7 +404,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       type = ADDerivativeParsedMaterial
       property_name = Gc
       material_property_names = 'burnup'
-      expression = 'Gc1*(1-GcX*burnup/0.002)'
+      expression = 'Gc1*(1-GcX*burnup/0.1)'
       constant_names = 'Gc1 GcX'
       constant_expressions = '${pellet_critical_energy} ${GcX}'
       output_properties = 'Gc'
@@ -536,15 +558,21 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
 [Functions]
   [gap_conductance_in]
     type = PiecewiseLinear
-    x = '0 10000000'
-    y = '3500 6000'
-    scale_factor = 1         # 保持原有的转换因子
+    data_file = '../../../s1Thermal/s1GapConductance/parameter_studies_series/case_002_in558_2_in560_8_li60/gap_conductance1/2D.csv'
+    x_index_in_file = 0
+    y_index_in_file = 4
+    xy_in_file_only = false
+    format = columns
+    extrap = true
   []
   [gap_conductance_out]
     type = PiecewiseLinear
-    x = '0 1000000 10000000'
-    y = '8863.5 6316.1 13642'
-    scale_factor = 1         # 保持原有的转换因子
+    data_file = '../../../s1Thermal/s1GapConductance/parameter_studies_series/case_002_in558_2_in560_8_li60/gap_conductance1/2D.csv'
+    x_index_in_file = 0
+    y_index_in_file = 5
+    xy_in_file_only = false
+    format = columns
+    extrap = true
   []
   [power_history] #新加的！！！！！！！！！！！！！！！！！！！！！！
   type = PiecewiseLinear
@@ -552,44 +580,47 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   # format = columns                 # 指定数据格式为列式
   # scale_factor = ${power_factor}         # 保持原有的转换因子
   # 论文中只给了线密度，需要化为体积密度
-    x = '0.0 2400.0 98400.0 1411100 1450000 1600000'
+    x = '0.0 2400.0 98400.0 ${endTime__100000} ${endTime__50000} ${endTime}'
     y = '0.0 ${LinearPower0_2} ${LinearPower} ${LinearPower} 0 0'
     scale_factor = ${power_factor}
   []
-  [gap_pressure_inner] #新加的！！！！！！！！！！！！！！！！！！！！！！
-    #间隙压力随时间的变化
+  # 接触压力（来自热-接触计算的CSV）
+  [contact_pressure_outer_from_csv]
+    type = PiecewiseLinear
+    data_file = '../../../s1Thermal/s1GapConductance/parameter_studies_series/case_002_in558_2_in560_8_li60/gap_conductance1/2D.csv'
+    x_index_in_file = 0
+    y_index_in_file = 3
+    xy_in_file_only = false
+    format = columns
+    extrap = true
+  []
+  # 常数间隙压力（维度与原先函数一致，若BC有factor=1e6则此处为无量纲数值）
+  [gap_pressure_const]
     type = PiecewiseLinear
     x = '0   ${endTime}'
-    y = '${Pressure1} ${Pressure1}'
+    y = '${Pressure1} ${Pressure2}'
     scale_factor = 1
   []
-  [gap_pressure_outer] #新加的！！！！！！！！！！！！！！！！！！！！！！
-  #间隙压力随时间的变化
-  type = PiecewiseLinear
-    x = '0 ${endTime}'
-    y = '${Pressure1} ${Pressure1}'
-  scale_factor = 1
-[]
 [T_infinity_in]
   #间隙压力随时间的变化
   type = PiecewiseLinear
-  x = '0 98400 1411100 1450000 ${endTime}'
+  x = '0 98400 ${endTime__100000} ${endTime__50000} ${endTime}'
   y = '293.15 ${initial_T_in} ${initial_T_in} 293.15 293.15'
   scale_factor = 1
 []
 [T_infinity_out]
   #间隙压力随时间的变化
   type = PiecewiseLinear
-  x = '0 98400 1411100 1450000 ${endTime}'
+  x = '0 98400 ${endTime__100000} ${endTime__50000} ${endTime}'
   y = '293.15 ${initial_T_out} ${initial_T_out} 293.15 293.15'
   scale_factor = 1
 []
   [dt_limit_func]
     type = ParsedFunction
     expression = 'if(t < 16000, 2000,
-                   if(t < 105000, 500,
-                   if(t < 1411100, 20000,
-                   if(t < 1500000, 500,10000))))'
+                   if(t < 105000, 750,
+                   if(t < ${endTime__100000},50000,
+                   if(t < (${endTime__50000}+20000), 750,10000))))'
   []
 []
 
