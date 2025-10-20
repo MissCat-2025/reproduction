@@ -28,33 +28,21 @@ check_directory() {
 
 # 修复换行符问题
 fix_line_endings() {
-    print_info "修复Python脚本换行符问题..."
-    
-    # 修复MOOSE框架脚本换行符
-    if [ -d "../moose/framework/scripts" ]; then
-        find ../moose/framework/scripts -name "*.py" -exec sed -i 's/\r$//' {} \; 2>/dev/null || true
-        print_success "MOOSE框架脚本换行符已修复"
+    print_info "修复换行符(.i/.py/.sh)为UNIX格式..."
+
+    # 目标根目录数组
+    local roots=(".. /moose" ".. /raccoon" ".")
+
+    # 逐个根目录处理 .i/.py/.sh 文件的 CRLF
+    if [ -d "../moose" ]; then
+        find ../moose -type f \( -name "*.i" -o -name "*.py" -o -name "*.sh" \) -exec sed -i 's/\r$//' {} \; 2>/dev/null || true
     fi
-    
-    # 修复MOOSE模块脚本换行符
-    for module_dir in ../moose/modules/*/scripts; do
-        if [ -d "$module_dir" ]; then
-            find "$module_dir" -name "*.py" -exec sed -i 's/\r$//' {} \; 2>/dev/null || true
-        fi
-    done
-    print_success "MOOSE模块脚本换行符已修复"
-    
-    # 修复RACCOON脚本换行符
-    if [ -d "../raccoon/scripts" ]; then
-        find ../raccoon/scripts -name "*.py" -exec sed -i 's/\r$//' {} \; 2>/dev/null || true
-        print_success "RACCOON脚本换行符已修复"
+    if [ -d "../raccoon" ]; then
+        find ../raccoon -type f \( -name "*.i" -o -name "*.py" -o -name "*.sh" \) -exec sed -i 's/\r$//' {} \; 2>/dev/null || true
     fi
-    
-    # 修复当前项目脚本换行符
-    if [ -d "scripts" ]; then
-        find scripts -name "*.py" -exec sed -i 's/\r$//' {} \; 2>/dev/null || true
-        print_success "当前项目脚本换行符已修复"
-    fi
+    find . -type f \( -name "*.i" -o -name "*.py" -o -name "*.sh" \) -exec sed -i 's/\r$//' {} \; 2>/dev/null || true
+
+    print_success "换行符修复完成"
 }
 
 # 修复MOOSE版本头文件
@@ -111,29 +99,66 @@ check_and_build_raccoon() {
     fi
 }
 
-# 修复权限问题
-fix_permissions() {
-    print_info "修复MOOSE框架脚本权限..."
+# 重新编译MOOSE框架和模块
+rebuild_moose_modules() {
+    print_info "重新编译MOOSE框架和模块..."
     
-    # 修复MOOSE框架脚本权限
-    if [ -d "../moose/framework/scripts" ]; then
-        chmod +x ../moose/framework/scripts/*.py 2>/dev/null || true
-        print_success "MOOSE框架脚本权限已修复"
+    # 清理MOOSE构建目录
+    if [ -d "../moose/framework/build" ]; then
+        print_info "清理MOOSE框架构建目录..."
+        rm -rf ../moose/framework/build/*
     fi
     
-    # 修复MOOSE模块脚本权限
-    for module_dir in ../moose/modules/*/scripts; do
+    # 清理MOOSE模块构建目录
+    for module_dir in ../moose/modules/*/build; do
         if [ -d "$module_dir" ]; then
-            chmod +x "$module_dir"/*.py 2>/dev/null || true
+            print_info "清理模块构建目录: $(dirname "$module_dir")"
+            rm -rf "$module_dir"/*
         fi
     done
-    print_success "MOOSE模块脚本权限已修复"
     
-    # 修复RACCOON脚本权限
-    if [ -d "../raccoon/scripts" ]; then
-        chmod +x ../raccoon/scripts/*.py 2>/dev/null || true
-        print_success "RACCOON脚本权限已修复"
+    # 重新编译MOOSE框架
+    print_info "重新编译MOOSE框架..."
+    cd ../moose/framework
+    if make -j8; then
+        print_success "MOOSE框架编译成功"
+    else
+        print_error "MOOSE框架编译失败"
+        cd ../../reproduction
+        return 1
     fi
+    
+    # 重新编译MOOSE模块
+    print_info "重新编译MOOSE模块..."
+    cd ../modules
+    if make -j8; then
+        print_success "MOOSE模块编译成功"
+    else
+        print_error "MOOSE模块编译失败"
+        cd ../../reproduction
+        return 1
+    fi
+    
+    cd ../../reproduction
+    print_success "MOOSE重新编译完成"
+}
+
+# 修复权限问题（递归激活脚本）
+fix_permissions() {
+    print_info "递归激活脚本执行权限(.py/.sh/.pl)..."
+
+    # moose
+    if [ -d "../moose" ]; then
+        find ../moose -type f \( -name "*.py" -o -name "*.sh" -o -name "*.pl" \) -exec chmod +x {} \; 2>/dev/null || true
+    fi
+    # raccoon
+    if [ -d "../raccoon" ]; then
+        find ../raccoon -type f \( -name "*.py" -o -name "*.sh" -o -name "*.pl" \) -exec chmod +x {} \; 2>/dev/null || true
+    fi
+    # reproduction
+    find . -type f \( -name "*.py" -o -name "*.sh" -o -name "*.pl" \) -exec chmod +x {} \; 2>/dev/null || true
+
+    print_success "脚本权限激活完成"
 }
 
 # 清理构建目录
@@ -173,6 +198,8 @@ show_help() {
     echo "  -j N        使用N个并行任务编译 (默认: 8)"
     echo "  -c          仅清理构建目录"
     echo "  -p          仅修复权限问题"
+    echo "  -x          仅修复换行符与权限(不编译)"
+    echo "  -r          重新编译MOOSE框架和模块"
     echo "  -h          显示帮助信息"
     echo ""
     echo "注意: 请确保已激活moose conda环境"
@@ -184,6 +211,8 @@ main() {
     local num_jobs=8
     local clean_only=false
     local permission_only=false
+    local rebuild_moose=false
+    local fix_only=false
     
     # 解析参数
     while [[ $# -gt 0 ]]; do
@@ -191,6 +220,8 @@ main() {
             -j) num_jobs="$2"; shift 2 ;;
             -c) clean_only=true; shift ;;
             -p) permission_only=true; shift ;;
+            -x) fix_only=true; shift ;;
+            -r) rebuild_moose=true; shift ;;
             -h|--help) show_help; exit 0 ;;
             *) print_error "未知选项: $1"; show_help; exit 1 ;;
         esac
@@ -212,10 +243,23 @@ main() {
         print_success "权限修复完成！"
         exit 0
     fi
+
+    if [ "$fix_only" = true ]; then
+        fix_line_endings
+        fix_permissions
+        print_success "换行与权限修复完成！"
+        exit 0
+    fi
     
     # 完整流程
     fix_line_endings
     fix_moose_revision
+    
+    # 如果需要重新编译MOOSE
+    if [ "$rebuild_moose" = true ]; then
+        rebuild_moose_modules
+    fi
+    
     check_and_build_raccoon
     fix_permissions
     clean_build
