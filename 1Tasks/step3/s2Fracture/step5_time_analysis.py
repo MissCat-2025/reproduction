@@ -13,7 +13,7 @@ from collections import defaultdict
 from datetime import datetime
 
 
-target_times = [1000, 30000, 50000, 100000, 200000, 500000, 1000000, 1500000]
+target_times = [1000, 30000, 50000, 100000, 200000, 500000, 1000000, 1500000,99999999]
 
 
 
@@ -261,7 +261,7 @@ def main():
     """主函数"""
     # 配置参数
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    studies_dir = os.path.join(script_dir, 'parameter_studies')
+    studies_dir = os.path.join(script_dir, 'parameter_studies_series')
     
     # 目标时间列表（秒）
     # target_times = [1000, 30000, 50000, 100000, 200000, 500000, 1000000, 1500000]

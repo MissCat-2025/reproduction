@@ -1,3 +1,9 @@
+# === 参数研究案例 ===
+# fission_rate: 1.80e+19
+# largestPoreSize: 50
+# pellet_critical_energy: 6
+# 生成时间: 2025-10-11 10:48:57
+
 # === 参数研究案例（对齐配对） ===
 # LinearPower: 90
 # initial_T_in: 570.7
@@ -230,7 +236,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
   l_max_its = 100 # 线性求解的最大迭代次数
   abort_on_solve_fail = true
   dtmin = 500
-  dtmax = 50000
+  dtmax = 100000
   end_time = ${endTime} # 总时间24h
 
   fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
@@ -244,8 +250,8 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     type = ParsedFunction
     expression = 'if(t < 12000, 2000,
                    if(t < 110000, 500,
-                   if(t < ${endTime__100000},50000,
-                   if(t < (${endTime__50000}+10000), 750,10000))))'
+                   if(t < (${endTime__100000}-500),100000,
+                   if(t < (${endTime__50000}+10000), 500,10000))))'
   []
 []
 [Adaptivity]

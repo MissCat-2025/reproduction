@@ -1,3 +1,9 @@
+# === 参数研究案例（对齐配对） ===
+# LinearPower: 90
+# initial_T_in: 570.7
+# initial_T_out: 582.8
+# 生成时间: 2025-09-23 18:08:10
+
 # === 参数研究案例 ===
 # end_time = 8.30e+6
 # mesh_size: 8.00e-5
@@ -18,7 +24,7 @@
 pellet_inner_diameter = 10.291         # 芯块内直径mm
 pellet_outer_diameter = 14.627         # 芯块外直径mm
 # length_scale_paramete = 4.50e-5
-endTime = 1550000
+endTime = 2e7
 endTime__50000 = '${fparse endTime-5000}'
 endTime__100000 = '${fparse endTime-100000}'
 mesh_size = 8.00e-5 #网格尺寸即可
@@ -224,7 +230,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
   l_max_its = 100 # 线性求解的最大迭代次数
   abort_on_solve_fail = true
   dtmin = 500
-  dtmax = 50000
+  dtmax = 100000
   end_time = ${endTime} # 总时间24h
 
   fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
@@ -236,10 +242,10 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
 [Functions]
   [dt_limit_func]
     type = ParsedFunction
-    expression = 'if(t < 16000, 2000,
-                   if(t < 105000, 750,
-                   if(t < ${endTime__100000},50000,
-                   if(t < (${endTime__50000}+20000), 750,10000))))'
+    expression = 'if(t < 12000, 2000,
+                   if(t < 110000, 500,
+                   if(t < (${endTime__100000}-500),100000,
+                   if(t < (${endTime__50000}+10000), 500,10000))))'
   []
 []
 [Adaptivity]

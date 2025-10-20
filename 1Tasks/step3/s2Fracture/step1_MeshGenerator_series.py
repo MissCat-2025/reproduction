@@ -16,13 +16,14 @@ output_dir = os.path.join(base_dir, 'parameter_studies_series')
 
 # Checkpoint配置，加入存档功能
 checkpoint_config = '''
-  [my_checkpoint]
-    type = Checkpoint
-    time_step_interval = 5    # 每5个时间步保存
-    num_files = 2            # 保留最近4个检查点
-    wall_time_interval = 600 # 每10分钟保存一次（秒）
-  []'''
-
+ '''
+# checkpoint_config = '''
+#   [my_checkpoint]
+#     type = Checkpoint
+#     time_step_interval = 5    # 每5个时间步保存
+#     num_files = 2            # 保留最近4个检查点
+#     wall_time_interval = 600 # 每10分钟保存一次（秒）
+#   []'''
 # 参数序列定义（“对齐配对”生成）：
 # 示例：
 # parameter_matrix = {
@@ -31,9 +32,9 @@ checkpoint_config = '''
 # }
 # 仅生成 4 个案例，而非笛卡尔积 16 个
 parameter_matrix = {
-    'initial_T_in': [552.6, 558.2, 570.7, 582.7, 589.5],
-    'initial_T_out': [553.7, 560.8, 582.8, 602.5, 611.8],
-    'LinearPower': [10, 60, 90, 70, 10]
+    'fission_rate': [1.8e19,2.0e19,2.2e19],
+    'largestPoreSize': [58,55,50],
+    'pellet_critical_energy': [3.2,4,5],
 }
 
 def add_checkpoint_to_outputs(content):
@@ -81,7 +82,7 @@ def replace_parameters(content, params):
     # 特殊处理MultiApp的input_files参数
     subapp_filename = f"sub_{generate_case_name(params)}.i"
     content = re.sub(
-        r'(input_files\s*=\s*)\'\'\S+\.i\'\'',
+        r'(input_files\s*=\s*)\'\S+\.i\'',
         f"\\1'{subapp_filename}'",
         content
     )
