@@ -29,9 +29,9 @@ parameter_matrix = {
     # Gc = 2.896 #断裂能
     # 'length_scale_paramete': [3.5e-5,4e-5,6e-5,8e-5],
     # 'Gc': [4.0,5,7.5,10,15,1,0.1],
-    'fission_rate': [1.8e19,2.5e19,3e19],
-    'largestPoreSize': [58,55,50],
-    'pellet_critical_energy': [3,4,5,6],
+    'fission_rate': [1.6e19,1.8e19,2e19],
+    'largestPoreSize': [59,58],
+    'pellet_critical_energy': [2.8,3,3.2],
     # 'min_gap':[8e-6],       # 'gap2': [0.58,0.55,0.50],
     # 'gap3': [0.3,0.2,0.1]
     # 'sigma0X': [0.7],
