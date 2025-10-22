@@ -1,4 +1,4 @@
-# conda activate moose && mpirun -n 9 /home/yp/projects/reproduction/reproduction-opt -i UN_fisson_bubble.i
+# conda activate moose && mpirun -n 9 /home/yp/projects/reproduction/reproduction-opt -i test1.i
 # mpirun -n 9 /home/cy/projects/xxx/xxx-opt -i UN_fisson_bubble.i
 # 
 # ========== 动力学方程实现说明 ==========
@@ -35,13 +35,24 @@
 #   cs(t=0) = 局部U原子浓度
 #   η(t=0) = 0
 #   φi(t=0) = Voronoi多晶结构
+#本文引入了一个额外的可视化参数Ф，通过分析不同相内非守恒相场变量的值及其在扩散界面的分布特征，可视化参数可以定义为以下表达式：
+# Φ=2[∑_(i=1)^r φ_i^2 ]+[∑_(j=r+1)^p φ_j^2]-η^2
 # ==========================================
-#
+#辐照气泡的成核和生长
+#   气泡核半径为3.2dx，过饱和空位浓度为0.2。成核概率:
+#   J^*=κ_1*e^(κ_2/Δc_ν )，
+#   式中，κ1、κ2为常数，值都为1e-5；Δcv为空位过饱和浓度，值为0.2。
+#   成核概率引入了具有过饱和空位的圆形区域，该区域与气体原子结合形成气泡，这就是模拟中使用的成核方法。
+
+#   一个铀原子裂变过程中气体原子（Xe和Kr）的产额为0.251（Olander，1976），
+
+
+
 # 参数设置
 # --- 基本常数 ---
 JtoeV = 6.24150974e18           # J → eV 转换
 length_scale = 1e9              # nm 为长度尺度
-time_scale = 1                  # ns 为时间尺度
+time_scale = 1.0e-6                  # ns 为时间尺度
 T = 1000                        # K 温度
 
 # --- 自由能势垒 / 势阱参数 ---
@@ -61,10 +72,10 @@ kappa_eta_SI = 1.67e-9          # J/m (order parameter gradient)
 # --- 迁移率与界面迁移率 ---
 Mv_SI = 2.69e-26                # m⁵/(J·s) vacancy mobility
 Mg_SI = 1.33e-28                # m⁵/(J·s) gas atom mobility
-L_SI = 4.33e-6                  # m³/(J·s) interface mobility
+L_SI = 4.33e-12                  # m³/(J·s) interface mobility
 
 # --- UN 物理参数 ---
-# Ev_f_eV = 7.85                  # Vacancy formation energy (eV) - 未使用，避免未用参数中止
+Ev_f_eV = 7.85                  # Vacancy formation energy (eV)
 # Ev_m_eV = 2.2                   # Vacancy migration energy (eV) - 未使用
 # Eg_m_eV = 1.79                  # Gas atom migration energy (eV) - 未使用
 # Dv_m_SI = 4.0e-7                # Vacancy diffusivity (m²/s)
@@ -73,11 +84,11 @@ L_SI = 4.33e-6                  # m³/(J·s) interface mobility
 # gamma_s_SI = 1.62               # J/m² Surface energy
 
 # --- 裂变与级联参数 ---
-fr_SI = 1e13                     # 裂变速率 fission rate (1/cm³/s) = 1e19 (1/m³/s)
+fr_SI = 1e19                     # 裂变速率1e13 fission rate (1/cm³/s) = 1e19 (1/m³/s)
 Lambda = 0.25                    # 气体原子产生份额常数 (无量纲)
-b0_SI = 1e-18                    # 分辨率常数 resolution constant (cm³) = 1×10⁻¹⁸ cm³
-Pcasc = 1e-6                     # 级联发生概率 (1/ns) 假设值，需根据实际调整
-VG = 1e-4                        # 级联空位浓度最大增加 (无量纲) 假设值
+b0_SI = 1e-24                    # 分辨率常数 resolution constant (cm³) = 1×10⁻¹⁸ cm³=1e-24m³
+# Pcasc = 1e-1                     # 级联发生概率 (1/ns) 假设值，需根据实际调整
+VG = 0.1                        # 级联空位浓度最大增加 (无量纲) 假设值
 
 # --- 单位换算到 MOOSE 内部（eV尺度） ---
 omega = ${fparse omega_SI * JtoeV / length_scale^3}
@@ -96,12 +107,12 @@ L = ${fparse L_SI * length_scale^3 / (JtoeV * time_scale)}
 # gamma_s = ${fparse gamma_s_SI * JtoeV / length_scale^2}
 
 # --- 裂变与级联参数换算 ---
-# kB_eV = 8.617333262e-5           # Boltzmann constant (eV/K) - 未使用，避免未用参数中止
-fr = ${fparse fr_SI * 1e-30}                   # nm^-3·ns^-1 
-b0 = ${fparse b0_SI * 1e21}                    # nm³
+# kB_eV = 8.617333262e-5           # Boltzmann constant (eV/K)
+fr = ${fparse fr_SI/length_scale^3/time_scale}                   # nm^-3·ns^-1 
+b0 = ${fparse b0_SI*length_scale^3}                    # nm³
 bi = ${fparse b0 * fr}               # 分辨率 bi=b0*fr (nm^3)
 # cv0 = ${fparse exp(-Ev_f_eV/(kB_eV*T))}                    # 初始空位浓度 c0ν=exp(-Efv/kBT)
-cv0 = 1.0e-6                                                 # 实用初值，避免极小导致不收敛
+# cv0_hint = 1.0e-6                                           # 兼容保留：旧参考量级（未直接使用）
 
 # --- 注释 ---
 # Ev_f_eV, Ev_m_eV, Eg_m_eV 保留在 eV 单位用于计算扩散激活能。
@@ -110,10 +121,10 @@ cv0 = 1.0e-6                                                 # 实用初值，�
 [Mesh]
   type = GeneratedMesh
   dim = 2
-  nx = 200
-  ny = 200
-  xmax = 100
-  ymax = 100
+  nx = 100
+  ny = 100
+  xmax = 50
+  ymax = 50
   elem_type = QUAD4
 []
   
@@ -152,22 +163,17 @@ cv0 = 1.0e-6                                                 # 实用初值，�
   [../]
 []
 [AuxVariables]
+  # ===== NUCLEATION SYSTEM — OVERVIEW =====
+  # 目的: 通过“概率 → 插入器 → 映射 → 惩罚势(材料) → 汇总自由能”的链路，
+  #       实现对气泡变量的离散成核。
+  # 数据流一览:
+  #   1) 概率:  基于过饱和度 ln(cv/cv_eq) → P_bubble（对 log 加 eps 防护）
+  #   2) 插入:  P_bubble → DiscreteNucleationInserter(inserter_*)
+  #   3) 映射:  inserter_* → DiscreteNucleationMap(map_*)
+  #   4) 惩罚:  map_* → Fn_* (Materials/DiscreteNucleation)
+  #   5) 汇总:  f_bubble_total = f0 + Fn_cg + Fn_eta
   # 晶界掩膜（用于后续成核概率/界面能等）
   [./bnds]
-    family = LAGRANGE
-    order = FIRST
-  [../]
-
-  # 气泡掩膜：把连续的 eta 转成 0~1 的有效“是否为气泡”场（供成核与禁核用）
-  [./bubble_mask]
-    family = LAGRANGE
-    order = FIRST
-  [../]
-  [./bubble_mask_old]
-    family = LAGRANGE
-    order = FIRST
-  [../]
-  [./bubble_mask_combined]
     family = LAGRANGE
     order = FIRST
   [../]
@@ -193,37 +199,6 @@ cv0 = 1.0e-6                                                 # 实用初值，�
     variable = bnds
     v = 'phi0 phi1 phi2'
     execute_on = 'initial timestep_end'
-  [../]
-
-  # 2) 气泡掩膜（把连续的 eta → 0~1 掩膜；用于禁在已成核处重复成核）
-  [./bubble_mask_aux]
-    type = ParsedAux
-    variable = bubble_mask
-    coupled_variables = 'eta'
-    constant_names = 'thigh tlow eps'
-    constant_expressions = '0.8 0.2 1e-12'
-    # eta ≥ thigh 视为稳定气泡区；中间用 tanh 过渡；避免除零加 eps
-    expression = 'if(eta>=thigh,0.83,max(0.5*(1+tanh(2*(eta-0.5*(thigh+tlow))/(thigh-tlow+eps))),0))'
-  [../]
-
-  # 3) 历史掩膜（时间步开始时拷贝上一时刻合并后的气泡掩膜）
-  [./bubble_mask_old_aux]
-    type = ParsedAux
-    variable = bubble_mask_old
-    coupled_variables = 'bubble_mask_combined'
-    expression = 'bubble_mask_combined'
-    execute_on = 'timestep_begin'
-  [../]
-
-  # 4) 合并掩膜（时间步结束：保持已成核区域，新增则更新，其它延续）
-  [./bubble_mask_combined_aux]
-    type = ParsedAux
-    variable = bubble_mask_combined
-    coupled_variables = 'bubble_mask bubble_mask_old'
-    constant_names = 'thigh tlow'
-    constant_expressions = '0.8 0.2'
-    expression = 'if(bubble_mask_old>thigh,bubble_mask_old,if(bubble_mask_old<tlow,bubble_mask,if(tlow<bubble_mask<thigh,bubble_mask,bubble_mask_old)))'
-    execute_on = 'timestep_end'
   [../]
   
   # 5) 源项计算：P_ν, P_g, R_g
@@ -259,7 +234,7 @@ cv0 = 1.0e-6                                                 # 实用初值，�
         mobility    = Mv
         kappa       = kappa_cv
         solve_type  = REVERSE_SPLIT
-        coupled_variables = 'cg eta phi0 phi1 phi2'
+        args = 'cg eta phi0 phi1 phi2'
       [../]
       # 气体原子演化: ∂cg/∂t = ∇·(Mg∇(δF/δcg)) + Pg(裂变生成) - Rg(复合损失)
       [./cg]
@@ -267,7 +242,7 @@ cv0 = 1.0e-6                                                 # 实用初值，�
         mobility    = Mg
         kappa       = kappa_cg
         solve_type  = REVERSE_SPLIT
-        coupled_variables = 'cv eta phi0 phi1 phi2'
+        args = 'cv eta phi0 phi1 phi2'
       [../]
       # [./cs]
       #   free_energy = f_bubble_total
@@ -284,7 +259,7 @@ cv0 = 1.0e-6                                                 # 实用初值，�
         free_energy = f_bubble_total
         mobility    = L_eta
         kappa       = kappa_eta
-        coupled_variables = 'cv cg phi0 phi1 phi2'
+        args = 'cv cg phi0 phi1 phi2'
       [../]
       # 晶粒序参量 φi 已通过 NullKernel 冻结（∂φi/∂t = 0），不演化
     [../]
@@ -303,22 +278,22 @@ cv0 = 1.0e-6                                                 # 实用初值，�
   [./cv_init]
     type = ConstantIC
     variable = cv
-    value = ${cv0}      # cv0 = exp(-Efv/kBT) 从空位形成能计算
+    value = 1e-6   # 从材料属性读取：cv_eq = exp(-Ev/kT)
   [../]
   [./cg_init]
     type = ConstantIC
     variable = cg
-    value = 0.0         # 初始无裂变气体 cg=0
+    value = 1.0e-20     # 避免 log(0)，物理上近似 0
   [../]
   [./cs_init]
     type = ConstantIC
     variable = cs
-    value = 1.0         # cs_eq：单相 UN 的基体占位
+    value = 1         # cs_eq：单相 UN 的基体占位
   [../]
   [./eta_init]
     type = ConstantIC
     variable = eta
-    value = 0.0         # 初始无气泡
+    value = 1.0e-20         # 初始无气泡
   [../]
   
     # （可选）给 cv/cg/eta 加极小随机扰动以避免完全对称：
@@ -392,11 +367,21 @@ cv0 = 1.0e-6                                                 # 实用初值，�
       expression = 'kB_eVK*T'
     [../]
   
+    # 平衡空位浓度 cv_eq = exp( -Ev_f_eV / kT )
+    [./cv_eq_mat]
+      type = ParsedMaterial
+      property_name = cv_eq
+      material_property_names = 'kT()'
+      constant_names = 'Ev_f_eV'
+      constant_expressions = '${Ev_f_eV}'
+      expression = 'exp(-Ev_f_eV / kT)'
+    [../]
+  
     # === PhaseField 动力学常数，供 Modules/PhaseField 读取 ===
     [./pfmobility]
       type = GenericConstantMaterial
-    prop_names  = 'Mv Mg L_eta kappa_cv kappa_cg kappa_eta'
-    prop_values = '${Mv} ${Mg} ${L} ${kappa_v} ${kappa_v} ${kappa_eta}'
+    prop_names  = 'Mv Mg L_eta kappa_cv kappa_cg kappa_eta P_bubble'
+    prop_values = '${Mv} ${Mg} ${L} ${kappa_v} ${kappa_v} ${kappa_eta} 1e-5'
       # 注：若暂不演化 cs，可将 Ms=0 且 kappa_cs=0；反之请给出实际值
     [../]
   
@@ -407,11 +392,10 @@ cv0 = 1.0e-6                                                 # 实用初值，�
       property_name = f_m
       coupled_variables = 'cv cg cs'
       material_property_names = 'kT()'
-      constant_names = 'kp Valpha cnu0 cg0 eps'
-      constant_expressions = '${kp} ${Va} 1.0e-6 1.0e-8 1.0e-12'
-      # kT*[ c ln c + s ln s + (1-c-s) ln(1-c-s) ] + (kp/2)*(1 - c - s)^2
-      # 其中 c≡cg，s≡cv；为避免 log(0) 用 eps 防护
-      expression = '(kT/Valpha) * ( if(cv>eps,cv,eps) * ( log(if(cv>eps,cv,eps)) - log(if(cnu0>eps,cnu0,eps)) ) + if(cg>eps,cg,eps) * ( log(if(cg>eps,cg,eps)) - log(if(cg0>eps,cg0,eps)) ) + if(1-cv-cg>eps,1-cv-cg,eps) * ( log(if(1-cv-cg>eps,1-cv-cg,eps)) - log(if(1-cnu0-cg0>eps,1-cnu0-cg0,eps)) ) )'
+      constant_names = 'kp Valpha cnu0 cg0'
+      constant_expressions = '${kp} ${Va} 1.0e-6 1.0e-8'
+      # kT*[ cv ln(cv) + cg ln(cg) + (1-cv-cg) ln(1-cv-cg) ] + (kp/2)*(1 - cv - cg)^2
+      expression = '(kT/Valpha) * ( cv * ( log(cv) - log(cnu0) ) + cg * ( log(cg) - log(cg0) ) + (1-cv-cg) * ( log(1-cv-cg) - log(1-cnu0-cg0) ) )'
       derivative_order = 2
     [../]
   
@@ -421,10 +405,10 @@ cv0 = 1.0e-6                                                 # 实用初值，�
       property_name = f_b
       coupled_variables = 'cv cg'
       material_property_names = 'kT()'
-      constant_names = 'Vi b kp nQ eps'
-      constant_expressions = '${Va} ${b} ${kp} 1.0 1.0e-12'
+      constant_names = 'Vi b kp nQ'
+      constant_expressions = '${Va} ${b} ${kp} 1.0'
       # 常见实现：cg * [ -ln( nQ * (Va/cg - b) ) - 1 ] ；与文献一致的结构
-      expression = '(kT/Vi) * if(cg>eps,cg,eps) * ( -log(nQ*(Vi/if(cg>eps,cg,eps) - b)) - 1.0 ) + 0.5*kp*(1 - cv - cg)^2'
+      expression = '(kT/Vi) * cg * ( -log(nQ*(Vi/cg - b)) - 1.0 ) + 0.5*kp*(1 - cv - cg)^2'
       derivative_order = 2
     [../]
   
@@ -434,7 +418,7 @@ cv0 = 1.0e-6                                                 # 实用初值，�
       property_name = f_poly
       coupled_variables = 'eta phi0 phi1 phi2'
       constant_names = 'a_gb a_s'  # 晶界能，表面能
-      constant_expressions = '1.0 0.0'
+      constant_expressions = '1.5 1.8'
       # 采用标准多项式：每个序参量的双/四项式 + 取向间二次耦合 + 晶界/表面能耦合
       expression = '(phi0^4+phi1^4+phi2^4)/4 - 0.5*(phi0^2+phi1^2+phi2^2) + (eta^4/4 - 0.5*eta^2) + a_gb*(phi0^2*phi1^2 + phi0^2*phi2^2 + phi1^2*phi2^2) + a_s*eta^2*(phi0^2+phi1^2+phi2^2) + 0.25'
       derivative_order = 2
@@ -448,8 +432,8 @@ cv0 = 1.0e-6                                                 # 实用初值，�
       coupled_variables = 'cs phi0 phi1 phi2 eta'
       constant_names = 'A c_alpha'
       constant_expressions = '1.0 1.0'
-      # 化学耦合项: f_chem = (A/2)*(cs - c_alpha*(phi0+phi1+phi2))^2
-      expression = '0.5*A*(cs - c_alpha*(phi0+phi1+phi2))^2'
+      # 化学耦合项: f_chem = (A/2)*(cs - c_alpha)^2
+      expression = '0.5*A*(cs - c_alpha)^2'
       derivative_order = 2
     [../]
       
@@ -491,7 +475,7 @@ cv0 = 1.0e-6                                                 # 实用初值，�
       constant_names = 'Lambda Omega fr'
       constant_expressions = '${Lambda} ${Va} ${fr}'
       # R3 为 0-1 随机数，此处简化为平均值 0.5，或用 ConditionalFunctionAux 实现随机
-      expression = '2*(1-eta)^2 * Lambda * Omega * fr * 0.5'
+      expression = '2*(1-eta)^2 * Lambda * Omega * fr * 0.1'
       outputs = exodus
     [../]
     
@@ -502,10 +486,10 @@ cv0 = 1.0e-6                                                 # 实用初值，�
       type = ParsedMaterial
       property_name = P_nu
       coupled_variables = 'eta'
-      constant_names = 'VG Pcasc thres'
-      constant_expressions = '${VG} ${Pcasc} 0.8'
+      constant_names = 'VG thres'
+      constant_expressions = '${VG} 0.8'
       # 简化: 基体中平均生成速率 = VG*Pcasc, 气泡中为0
-      expression = 'if(eta<thres, VG*Pcasc, 0)'
+      expression = 'if(eta<thres, VG, 0)'
       outputs = exodus
     [../]
     
@@ -521,24 +505,20 @@ cv0 = 1.0e-6                                                 # 实用初值，�
       outputs = exodus
     [../]
 
-    # === 晶界增强的成核概率（只在晶界、未成核区更容易成核） ===
-    [./probability_bubble]
-      type = ParsedMaterial
-      property_name = P_bubble
-      coupled_variables = 'bnds bubble_mask_combined'
-      constant_names = 'base_prob min_mask'
-      constant_expressions = '1e-3 0.05'
-      expression = 'max((0.7 - bnds)*base_prob, 0) * max(1 - bubble_mask_combined, min_mask)'
-      outputs = exodus
-    [../]
-  
-    # === 离散成核 —— 对 cg（供气）与 eta（把气泡相拉到1） ===
+    # === 成核概率场 P_bubble（基于过饱和度：ln(cv/cv_eq)；对 log(0) 用 eps 防护） ===
+    # 用途: 为 DiscreteNucleationInserter 提供空间分布的成核概率。
+    # 形式: P_bubble = max( k1 * ln( cv / cv_eq ), 0 )
+    # 说明: 使用 if(cv>eps,cv,eps) 与 if(cv_eq>eps,cv_eq,eps) 防止 log(0)。
+
+    # === 离散成核“惩罚势”(Materials) —— 将 map_* 注入自由能 ===
+    # Fn_cg: 促使 cg 在成核点趋近 op_values；Fn_eta: 促使 eta 在成核点拉到1。
+    # 注意: 两者均以大 penalty 注入，以最小化模式(MIN)生效。
     [./nucleation_cg]
       type = DiscreteNucleation
       property_name = Fn_cg
       op_names  = cg
       op_values = 0.95
-      penalty   = 1e6
+      penalty   = 1e10
       penalty_mode = MIN
       map = map_cg
       outputs = exodus
@@ -548,7 +528,7 @@ cv0 = 1.0e-6                                                 # 实用初值，�
       property_name = Fn_eta
       op_names  = eta
       op_values = 1.0
-      penalty   = 1e6
+      penalty   = 1e10
       penalty_mode = MIN
       map = map_eta
       outputs = exodus
@@ -559,6 +539,7 @@ cv0 = 1.0e-6                                                 # 实用初值，�
       type = DerivativeSumMaterial
       property_name = f_bubble_total
       coupled_variables = 'cv cg cs eta phi0 phi1 phi2'
+      # 将基体/气泡/多相等基础能量 f0，与两类离散成核惩罚 Fn_* 一并汇总
       sum_materials = 'f0 Fn_cg Fn_eta'
     [../]
 []
@@ -567,19 +548,22 @@ cv0 = 1.0e-6                                                 # 实用初值，�
   [./voronoi]
     type = PolycrystalVoronoi
     rand_seed = 2
-    int_width = 0.2e3
+    int_width = 1.6
   [../]
   
   [./grain_tracker]
     type = GrainTracker
   [../]
   
-    # ===== 气泡成核：对 cg（供气） =====
+    # ===== 成核驱动（UserObjects）—— 插入器 Inserter 与 映射 Map =====
+    # 作用顺序: probability(P_bubble) → inserter_* → map_* → Fn_*
+    # 建议: radius 控制成核“核”的空间尺度；hold_time 控制开始插入的时间点。
+    # --- 气泡成核：对 cg（供气） ---
   [./inserter_cg]
     type = DiscreteNucleationInserter
     hold_time  = 0.01
-    probability = P_bubble     # 来自 Materials/probability_bubble
-    radius     = 1.6         # 成核半径（nm 数值；按需要调整）
+    probability = P_bubble     # 概率: 基于 ln(cv/cv_eq)
+    radius     = 1.6           # 成核半径 = 3.2*dx，dx=0.5 → 1.6 nm
   [../]
   
   [./map_cg]
@@ -588,12 +572,12 @@ cv0 = 1.0e-6                                                 # 实用初值，�
     inserter = inserter_cg
   [../]
   
-    # ===== 气泡成核：对 eta（把气泡序参量拉到1）=====
+    # --- 气泡成核：对 eta（把气泡序参量拉到1） ---
   [./inserter_eta]
     type = DiscreteNucleationInserter
     hold_time  = 0.01
-    probability = P_bubble     # 同一概率场：晶界增强 & 禁止已成核重复成核
-    radius     = 1.6
+    probability = P_bubble     # 概率: 基于 ln(cv/cv_eq)
+    radius     = 1.0
   [../]
   
   [./map_eta]
@@ -621,29 +605,27 @@ cv0 = 1.0e-6                                                 # 实用初值，�
 [Executioner]
   type = Transient
   scheme = bdf2
-  solve_type = 'NEWTON'
+  # solve_type = 'NEWTON'
   # petsc_options = '-ksp_type=preonly -pc_type=lu -pc_factor_mat_solver_type=mumps'
   # line_search = bt
   # scheme = bdf2
   # solve_type = 'NEWTON'
   # petsc_options = '-ksp_type=gmres -pc_type=lu'
-  # line_search = bt
+  line_search = bt
     #Preconditioned JFNK (default)
-    # solve_type = 'PJFNK'
+    solve_type = 'PJFNK'
+    petsc_options_iname = '-pc_type -pc_hypre_type'
+    petsc_options_value = 'hypre boomeramg'
+  # nl_max_its = 20
 
-    # Uses newton iteration to solve the problem.
-    # petsc_options_iname = '-pc_type -pc_hypre_type'
-    # petsc_options_value = 'hypre boomeramg'
-  nl_max_its = 20
-
-  nl_rel_tol = 1e-9 # 非线性求解的相对容差
+  nl_rel_tol = 1e-7 # 非线性求解的相对容差
   nl_abs_tol = 1e-7 # 非线性求解的绝对容差
-  l_tol = 1e-9  # 线性求解的容差
-  l_abs_tol = 1e-8 # 线性求解的绝对容差
+  l_tol = 1e-7  # 线性求解的容差
+  l_abs_tol = 1e-7 # 线性求解的绝对容差
   start_time = 0.0
-  num_steps = 100
+  num_steps = 5000
 
-  dt = 0.01
+  dt = 0.0001
   # [./Adaptivity]
   #   max_h_level = 2
   #   initial_adaptivity = 1

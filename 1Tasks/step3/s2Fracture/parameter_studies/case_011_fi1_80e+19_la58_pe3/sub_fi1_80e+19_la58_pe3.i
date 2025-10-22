@@ -2,7 +2,7 @@
 # fission_rate: 1.80e+19
 # largestPoreSize: 58
 # pellet_critical_energy: 3
-# 生成时间: 2025-10-20 13:49:30
+# 生成时间: 2025-10-20 20:26:05
 
 # === 参数研究案例（对齐配对） ===
 # LinearPower: 90
