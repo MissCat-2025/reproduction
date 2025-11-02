@@ -35,11 +35,7 @@ ny = '${fparse int(5e-3/(nh*nh*l/3))}'
     family = MONOMIAL
     order = CONSTANT
   []
-  [sigma0]
-    family = MONOMIAL
-    order = CONSTANT
-  []
-  [a1]
+  [ft]
     family = MONOMIAL
     order = CONSTANT
   []
@@ -76,21 +72,10 @@ ny = '${fparse int(5e-3/(nh*nh*l/3))}'
 [Materials]
   [fracture_properties]
     type = ADGenericConstantMaterial
-    prop_names = 'Gc l'
-    prop_values = '${Gc} ${l}'
+    prop_names = 'Gc a1 l ft'
+    prop_values = '${Gc} ${a1} ${l} ${ft}'
   []
-  [sigma0]
-  type = ADParsedMaterial
-  property_name = sigma0
-  coupled_variables = 'sigma0'
-  expression = 'sigma0'
-[]
-  [a11]
-    type = ADParsedMaterial
-    property_name = a1
-    coupled_variables = 'a1'
-    expression = 'a1'
-  []
+  
   [crack_geometric]
     type = CrackGeometricFunction
     property_name = alpha
@@ -126,7 +111,7 @@ ny = '${fparse int(5e-3/(nh*nh*l/3))}'
     [marker]
       type = PhasePiledFractureHSMarker
       von_mises_variable = MaxPrincipal
-      sigma0 = sigma0
+      sigma0 = ft
       x1 = 1e-6 #d变量小于x1时，标记为粗网格
       x2 = 0.05 #d变量在x1和x2之间时，标记为细网格
       xmax = 0.1 #d变量大于xmax时，一定是细网格
@@ -156,7 +141,7 @@ ny = '${fparse int(5e-3/(nh*nh*l/3))}'
   nl_rel_tol = 1e-7
   nl_abs_tol = 1e-8
   dt = 0.1e-3
-  end_time = 50e-3
+  end_time = 200e-3
 []
 
 [Outputs]

@@ -1,4 +1,8 @@
 # === 参数研究案例（对齐配对） ===
+# LinearPower: 120
+# 生成时间: 2025-10-27 12:40:36
+
+# === 参数研究案例（对齐配对） ===
 # LinearPower: 90
 # initial_T_in: 570.7
 # initial_T_out: 582.8
@@ -9,7 +13,7 @@
 initial_T = 293.15
 initial_T_in = 570.7
 initial_T_out = 582.8
-LinearPower = 90
+LinearPower = 120
 LinearPower0_2 = '${fparse LinearPower*0.2}'
 endTime = 2e7
 endTime__50000 = '${fparse endTime-50000}'
@@ -93,7 +97,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = 'sub_Li90_in570_7_in582_8.i'
+    input_files = 'sub_Li120.i'
     cli_args = 'l=${length_scale_paramete}'
     execute_on = 'TIMESTEP_END'
         # 强制同步参数

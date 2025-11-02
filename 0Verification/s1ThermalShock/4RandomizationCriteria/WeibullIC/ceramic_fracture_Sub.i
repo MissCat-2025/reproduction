@@ -156,7 +156,7 @@ ny = '${fparse int(5e-3/(nh*nh*l/3))}'
   nl_rel_tol = 1e-7
   nl_abs_tol = 1e-8
   dt = 0.1e-3
-  end_time = 50e-3
+  end_time = 200e-3
 []
 
 [Outputs]

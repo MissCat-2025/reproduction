@@ -1,8 +1,9 @@
 # 陶瓷片热冲击实验 - 热弹性模拟部分
-# conda activate moose &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i ceramic_fracture.i
+# conda activate moose &&mpirun -n 4 /home/yp/projects/reproduction/reproduction-opt -i ceramic_fracture.i --timing > timing.txt
 
 [GlobalParams]
-  displacements = 'disp_x disp_y disp_z'
+  displacements = 'disp_x disp_y'
+  out_of_plane_strain = strain_zz
 []
 
 # 陶瓷材料参数
@@ -15,35 +16,58 @@ k_ceramic = 31          # 陶瓷导热系数 (W/m·K)
 cp_ceramic = 880        # 比热容 (J/kg·K)
 rho_ceramic = 3980      # 密度 (kg/m³)
 
+T_initial_condition = 573.15
 # 断裂参数
-Gc = 42.47               # 断裂能 (J/m^2)
-l = 0.10e-3                # 相场正则化长度 (m)
-nx = '${fparse int(25e-3/(l/3))}'
-ny = '${fparse int(5e-3/(l/3))}'
+Gc0 = 42.47               # 断裂能 (J/m^2)
+# Gc=${fparse (1+grid_sizes/2/length_scale_paramete)*Gc0}
+l = 0.1e-3 #裂纹附近加密4倍)                # 相场正则化长度 (m)
+nh = 2 # 加密次数
+nx = '${fparse int(25e-3/(nh*nh*l/3))}'
+ny = '${fparse int(5e-3/(nh*nh*l/3))}'
 ft = 180e6                # 抗拉强度 (Pa)
-a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}' 
+Gc=${fparse (1+1/6)*Gc0}
 [Mesh]
   [gmg]
     type = GeneratedMeshGenerator
-    dim = 3
+    dim = 2
     nx = ${nx}            # 25mm / 0.05mm = 500
     ny = ${ny}            # 5mm / 0.05mm = 100
-    nz = 1
     xmax = 25e-3
     ymax = 5e-3
-    zmax = 0.05e-3
+  []
+[]
+[MultiApps]
+  [fracture]
+    type = TransientMultiApp
+    input_files = 'ceramic_fracture_Sub.i'
+    cli_args = 'Gc=${Gc};l=${l}'
+    execute_on = 'TIMESTEP_END'
   []
 []
 
+[Transfers]
+  [from_d]
+    type = MultiAppGeneralFieldShapeEvaluationTransfer
+    from_multi_app = 'fracture'
+    variable = d
+    source_variable = d
+  []
+  [to_psie_active]
+    type = MultiAppGeneralFieldShapeEvaluationTransfer
+    to_multi_app = 'fracture'
+    variable = 'psie_active MaxPrincipal a1 sigma0'
+    source_variable = 'psie_active MaxPrincipal a1 sigma0'
+  []
+[]
 [Variables]
   [disp_x]
   []
   [disp_y]
   []
-  [disp_z]
-  []
   [temp]
-    initial_condition = 573.15  # 初始温度300°C
+    initial_condition = '${T_initial_condition}'  # 初始温度300°C
+  []
+  [strain_zz]
   []
 []
 
@@ -68,11 +92,10 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
     variable = disp_y
     component = 1
   []
-  [solid_z]
-    type = ADStressDivergenceTensors
-    variable = disp_z
-    component = 2
-  []
+  [./solid_z]
+    type = ADWeakPlaneStress
+    variable = strain_zz
+  [../]
   
   # 热传导
   [heat_conduction]
@@ -94,7 +117,19 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
     execute_on = 'TIMESTEP_END'
   []
 []
-
+[AuxVariables]
+  [sigma0_F_Density]
+    family = MONOMIAL
+    order = CONSTANT
+    [InitialCondition]
+      type = WeibullICDensity
+      scale = 1
+      shape = 30
+      location = 0.0
+      seed = 0
+    []
+  []
+[]
 [BCs]
   # 力学边界条件 - 右侧对称面
   [symm_x]
@@ -109,19 +144,13 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
     boundary = bottom
     value = 0
   []
-  [symm_z]
-    type = DirichletBC
-    variable = disp_z
-    boundary = back
-    value = 0
-  []
   
   # 热边界条件
   [left_temp]
     type = DirichletBC
     variable = temp
     boundary = 'top left'
-    value = 298.15  # 水淬温度20°C
+    value = 293.15  # 水淬温度20°C
   []
   # 右侧为绝热边界 - 不需要额外的边界条件
 []
@@ -137,10 +166,19 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
   # 断裂属性
   [bulk_properties]
     type = ADGenericConstantMaterial
-    prop_names = 'E nu l a1 ft Gc'
-    prop_values = '${E_ceramic} ${nu_ceramic} ${l} ${a1} ${ft} ${Gc}'
+    prop_names = 'E nu l Gc'
+    prop_values = '${E_ceramic} ${nu_ceramic} ${l} ${Gc}'
   []
-  
+  [sigma0]
+    type = ADDerivativeParsedMaterial
+    property_name = sigma0
+    coupled_variables = 'sigma0_F_Density'
+    expression = 'sigma0_F_Density*ft'  # 直接使用辅助变量的值
+    constant_names = 'ft'
+    constant_expressions = ' ${ft}'
+    output_properties = 'sigma0'
+    outputs = exodus
+  []
   # 相场断裂模型材料
   [crack_geometric]
     type = CrackGeometricFunction
@@ -148,7 +186,14 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
     expression = '2*d-d*d'
     phase_field = d
   []
-  
+  [a1]
+    type = ADDerivativeParsedMaterial
+    property_name = a1
+    material_property_names = 'Gc E l sigma0'
+    expression = '4*E*Gc/sigma0/sigma0/l/3.14159'
+    output_properties = 'a1'
+    outputs = exodus
+  []
   [degradation]
     type = RationalDegradationFunction
     property_name = g
@@ -166,22 +211,18 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
     thermal_expansion_coeff = ${alpha_ceramic}
     temperature = temp
   []
-  
+
   [strain]
-    type = ADComputeSmallStrain
+    type = ADComputePlaneSmallStrain
     eigenstrain_names = thermal_eigenstrain
   []
   [elasticity]
-    type = SmallDeformationIsotropicElasticity
-    # youngs_modulus = E
-    # poissons_ratio = nu
-    # tensile_strength = ft
-    # fracture_energy = Gc
-    bulk_modulus = K
-    shear_modulus = G
+    type = SmallDeformationH
+    youngs_modulus = E
+    poissons_ratio = nu
+    tensile_strength = sigma0
     phase_field = d
     degradation_function = g
-    decomposition = SPECTRAL
     output_properties = 'psie_active'
     outputs = exodus
   []
@@ -191,27 +232,33 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
   []
 []
 
-[MultiApps]
-  [fracture]
-    type = TransientMultiApp
-    input_files = ceramic_fracture_sub.i
-    cli_args = 'Gc=${Gc};a1=${a1};l=${l}'
-    execute_on = 'TIMESTEP_END'
-  []
-[]
-
-[Transfers]
-  [from_d]
-    type = MultiAppGeneralFieldShapeEvaluationTransfer
-    from_multi_app = 'fracture'
-    variable = d
-    source_variable = d
-  []
-  [to_psie_active]
-    type = MultiAppGeneralFieldShapeEvaluationTransfer
-    to_multi_app = 'fracture'
-    variable = psie_active
-    source_variable = psie_active
+[Adaptivity]
+  initial_marker = boundary
+  initial_steps = ${nh}
+  marker = marker
+  max_h_level = ${nh}
+  [Markers]
+    [marker]
+      type = PhasePiledFractureHSMarker
+      von_mises_variable = MaxPrincipal
+      sigma0 = sigma0
+      x1 = 1e-6 #d变量小于x1时，标记为粗网格
+      x2 = 0.05 #d变量在x1和x2之间时，标记为细网格
+      xmax = 0.1 #d变量大于xmax时，一定是细网格
+      y1 = 0.3 #vonMises应力小于y1时，标记为粗网格
+      y2 = 0.6 #vonMises应力大于y2之间时，标记为细网格
+      variable = d
+      timeD = 3
+      timeStress = 5
+      d_change_threshold = 0.02
+      stress_change_threshold = 1e6
+    []
+    [boundary]
+      type = BoundaryMarker
+      next_to = 'top left'
+      distance = 1e-4
+      mark = refine
+    []
   []
 []
 
@@ -228,7 +275,7 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
   
   # 时间步长设置
   dt = 0.1e-3  # 小的时间步长以捕捉快速的温度变化
-  end_time = 200e-3  # 总模拟时间
+  end_time = 50e-3  # 总模拟时间
   fixed_point_max_its = 4
   fixed_point_rel_tol = 1e-5
   fixed_point_abs_tol = 1e-6
@@ -238,5 +285,5 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
 [Outputs]
   exodus = true
   print_linear_residuals = false
-  file_base = 'outputs/2'
+  file_base = 'outputs/${l}'
 []

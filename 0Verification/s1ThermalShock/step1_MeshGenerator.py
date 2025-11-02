@@ -25,7 +25,7 @@ checkpoint_config = '''
 
 # 参数矩阵定义 (在此修改需要研究的参数)
 parameter_matrix = {
-    'T_initial_condition': [573.15,673.15,773.15,873.15],
+    'dt': [0.5e-4,1e-4,2e-4,4e-4,8e-4],
 }
 
 # 排除列表：已知无法运行的参数组合

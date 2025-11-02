@@ -32,9 +32,7 @@ checkpoint_config = '''
 # }
 # 仅生成 4 个案例，而非笛卡尔积 16 个
 parameter_matrix = {
-    'fission_rate': [1.8e19,2.0e19,2.2e19],
-    'largestPoreSize': [58,55,50],
-    'pellet_critical_energy': [3.2,4,5],
+    'LinearPower':[20,30,40,50,60,70,80,90,100,110,120,130]
 }
 
 def add_checkpoint_to_outputs(content):

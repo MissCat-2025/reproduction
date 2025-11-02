@@ -1,3 +1,8 @@
+# === 参数研究案例 ===
+# end_time = 0.05
+# dt: 4.00e-4
+# 生成时间: 2025-11-01 20:48:52
+
 # 陶瓷片热冲击实验 - 相场断裂部分
 l = 0.10e-3                # 相场正则化长度 (m)
 nh = 2
@@ -155,7 +160,7 @@ ny = '${fparse int(5e-3/(nh*nh*l/3))}'
   automatic_scaling = true
   nl_rel_tol = 1e-7
   nl_abs_tol = 1e-8
-  dt = 0.1e-3
+  dt = 4.00e-4
   end_time = 50e-3
 []
 

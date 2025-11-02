@@ -1,3 +1,8 @@
+# === 参数研究案例 ===
+# end_time = 0.05
+# dt: 2.00e-4
+# 生成时间: 2025-11-01 20:48:52
+
 # 陶瓷片热冲击实验 - 热弹性模拟部分
 # conda activate moose &&mpirun -n 4 /home/yp/projects/reproduction/reproduction-opt -i ceramic_fracture.i --timing > timing.txt
 
@@ -39,7 +44,7 @@ Gc=${fparse (1+1/6)*Gc0}
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = 'ceramic_fracture_Sub.i'
+    input_files = 'sub_dt2_00e-4.i'
     cli_args = 'Gc=${Gc};l=${l}'
     execute_on = 'TIMESTEP_END'
   []
@@ -281,7 +286,7 @@ Gc=${fparse (1+1/6)*Gc0}
   nl_abs_tol = 1e-8
   
   # 时间步长设置
-  dt = 0.1e-3  # 小的时间步长以捕捉快速的温度变化
+  dt = 2.00e-4  # 小的时间步长以捕捉快速的温度变化
   end_time = 50e-3  # 总模拟时间
   fixed_point_max_its = 4
   fixed_point_rel_tol = 1e-5
@@ -290,6 +295,12 @@ Gc=${fparse (1+1/6)*Gc0}
 []
 
 [Outputs]
+  [my_checkpoint]
+    type = Checkpoint
+    time_step_interval = 5    # 每5个时间步保存
+    num_files = 2            # 保留最近4个检查点
+    wall_time_interval = 600 # 每10分钟保存一次（秒）
+  []
   exodus = true
   print_linear_residuals = false
   file_base = 'outputs/${l}'
