@@ -32,7 +32,7 @@ checkpoint_config = '''
 # }
 # 仅生成 4 个案例，而非笛卡尔积 16 个
 parameter_matrix = {
-    'LinearPower':[20,30,40,50,60,70,80,90,100,110,120,130]
+    'LinearPower':[60,80,100,120]
 }
 
 def add_checkpoint_to_outputs(content):
