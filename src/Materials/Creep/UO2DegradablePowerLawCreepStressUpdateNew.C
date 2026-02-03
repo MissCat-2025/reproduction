@@ -90,7 +90,9 @@ UO2DegradablePowerLawCreepStressUpdateNew::computeStressInitialize(
   const ADReal inv_RT = 1.0 / RT;
   
   // 使用氧化学计量比
-  const ADReal x = _oxygen_ratio[_qp];
+  ADReal x = _oxygen_ratio[_qp];
+  if (MetaPhysicL::raw_value(x) <= 1.0)
+    x = 1.0 + 1e-12;
   const ADReal log_x = std::log10(x);
   const ADReal exp_common = std::exp(-20.0 / log_x - 8.0);
   const ADReal denom = 1.0 / (exp_common + 1.0);
@@ -151,12 +153,17 @@ UO2DegradablePowerLawCreepStressUpdateNew::computeResidual(
     ADReal term2 = _three_shear_modulus * scalar;
     ADReal g_sq = _g[_qp] * _g[_qp];
     
-    effective_stress = std::sqrt(term1 * term1 + term2 * term2 * (g_sq - 1.0) * alpha);
+    ADReal radicand = term1 * term1 + term2 * term2 * (g_sq - 1.0) * alpha;
+    if (MetaPhysicL::raw_value(radicand) <= 0.0)
+      radicand = 0.0;
+    effective_stress = std::sqrt(radicand);
   }
   else
   {
     effective_stress = effective_trial_stress - _three_shear_modulus * scalar;
   }
+  if (MetaPhysicL::raw_value(effective_stress) <= 0.0)
+    return -scalar;
   
   // 计算各分量蠕变率
   ADReal creep_th1 = 0.0;
@@ -233,20 +240,30 @@ UO2DegradablePowerLawCreepStressUpdateNew::computeDerivative(
     ADReal term2 = _three_shear_modulus * scalar;
     ADReal g_sq = _g[_qp] * _g[_qp];
     
-    effective_stress = std::sqrt(term1 * term1 + term2 * term2 * (g_sq - 1.0) * alpha);
+    ADReal radicand = term1 * term1 + term2 * term2 * (g_sq - 1.0) * alpha;
+    if (MetaPhysicL::raw_value(radicand) <= 0.0)
+    {
+      effective_stress = 0.0;
+      d_effective_stress_d_scalar = 0.0;
+    }
+    else
+    {
+      effective_stress = std::sqrt(radicand);
+      ADReal d_term1_d_scalar = -_three_shear_modulus;
+      ADReal d_term2_d_scalar = _three_shear_modulus;
+      ADReal numerator = 2.0 * term1 * d_term1_d_scalar +
+                         2.0 * term2 * d_term2_d_scalar * (g_sq - 1.0) * alpha;
+      d_effective_stress_d_scalar = numerator / (2.0 * effective_stress);
+    }
     
-    // 计算应力对scalar的导数
-    ADReal d_term1_d_scalar = -_three_shear_modulus;
-    ADReal d_term2_d_scalar = _three_shear_modulus;
-    
-    ADReal numerator = 2.0 * term1 * d_term1_d_scalar + 2.0 * term2 * d_term2_d_scalar * (g_sq - 1.0) * alpha;
-    d_effective_stress_d_scalar = numerator / (2.0 * effective_stress);
   }
   else
   {
     effective_stress = effective_trial_stress - _three_shear_modulus * scalar;
     d_effective_stress_d_scalar = -_three_shear_modulus;
   }
+  if (MetaPhysicL::raw_value(effective_stress) <= 0.0)
+    return -1.0;
   
   // 计算各项蠕变率对应力的导数
   ADReal d_creep_th1_d_stress = 0.0;

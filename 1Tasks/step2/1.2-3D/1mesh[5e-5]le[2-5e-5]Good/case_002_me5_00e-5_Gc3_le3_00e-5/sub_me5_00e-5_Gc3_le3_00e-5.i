@@ -163,6 +163,9 @@ n_elems_radial_pellet = '${fparse int(pellet_outer_radius/(4*grid_sizes))}'     
       coupled_variables = 'd psie_active'
       material_property_names = 'alpha(d) g(d) Gc c0 l'
       block = pellet
+      output_properties = 'c0'
+      
+      outputs = exodus
     []
   []
   
@@ -202,5 +205,6 @@ n_elems_radial_pellet = '${fparse int(pellet_outer_radius/(4*grid_sizes))}'     
   []
   
   [Outputs]
+    exodus = true #表示输出exodus格式文件
     print_linear_residuals = false
   []

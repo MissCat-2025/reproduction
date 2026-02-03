@@ -206,6 +206,7 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
 []
 
 [Adaptivity]
+  # interval = 2
   initial_marker = boundary
   initial_steps = ${nh}
   marker = marker
@@ -215,11 +216,11 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
       type = PhasePiledFractureHSMarker
       von_mises_variable = MaxPrincipal
       sigma0 = ft
-      x1 = 1e-6 #d变量小于x1时，标记为粗网格
+      x1 = 1e-8 #d变量小于x1时，标记为粗网格
       x2 = 0.05 #d变量在x1和x2之间时，标记为细网格
       xmax = 0.1 #d变量大于xmax时，一定是细网格
       y1 = 0.3 #vonMises应力小于y1时，标记为粗网格
-      y2 = 0.6 #vonMises应力大于y2之间时，标记为细网格
+      y2 = 0.5 #vonMises应力大于y2之间时，标记为细网格
       variable = d
       timeD = 3
       timeStress = 5

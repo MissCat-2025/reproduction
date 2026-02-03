@@ -4,7 +4,7 @@
 # Gc: 3
 # length_scale_paramete: 3.00e-5
 # 生成时间: 2025-06-24 09:31:06
-
+# conda activate moose &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i main_me5_00e-5_Gc3_le3_00e-5.i
 # mpirun -n 12 /home/yp/projects/raccoon/raccoon-opt -i NoClad3D_ThermalCreepFracture.i
 # mpirun -n 12 /home/yp/projects/raccoon/raccoon-opt -i NoClad3D_ThermalCreepFracture.i --mesh-only KAERI_HANARO_UpperRod1.e
 pellet_E=201.3e9

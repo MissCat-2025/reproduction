@@ -162,6 +162,8 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       material_property_names = 'alpha(d) g(d) Gc c0 l'
       # output_properties = 'psi'
       # outputs = exodus
+      output_properties = 'c0'
+      outputs = exodus
       block = pellet
     []
   []

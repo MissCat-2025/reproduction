@@ -142,6 +142,9 @@ UO2CreepRateBaseJ2Creep::computeCreepRate(const ADReal & effective_stress, const
 ADReal
 UO2CreepRateBaseJ2Creep::computeSteadyStateCreepRate(const ADReal & effective_stress, const ADReal & effective_creep_strain)
 {
+  if (effective_stress <= 0.0)
+    return 0.0;
+
   // 计算各分量蠕变率
   ADReal creep_th1 = 0.0;  // 热蠕变线性项
   ADReal creep_th2 = 0.0;  // 热蠕变幂律项
@@ -175,7 +178,10 @@ UO2CreepRateBaseJ2Creep::computeSteadyStateCreepRate(const ADReal & effective_st
   creep_ir = _a8 * _fission_rate * effective_stress * _exp_Q3;
   
   // 总稳态蠕变率
-  return creep_th1 + creep_th2 + creep_ir;
+  const ADReal total_rate = creep_th1 + creep_th2 + creep_ir;
+  // if (raw_value(total_rate) < 0.0)
+  //   return 0.0;
+  return total_rate;
 }
 
 ADReal
@@ -218,6 +224,12 @@ UO2CreepRateBaseJ2Creep::updateMaxStressHistory(const ADReal & effective_stress)
 ADReal
 UO2CreepRateBaseJ2Creep::computeCreepRateStressDerivative(const ADReal & effective_stress, const ADReal & effective_creep_strain)
 {
+  // if (effective_stress <= 0.0)
+  //   return 0.0;
+
+  // if (raw_value(computeSteadyStateCreepRate(effective_stress, effective_creep_strain)) <= 0.0)
+  //   return 0.0;
+
   // 计算稳态蠕变率对应力的导数
   ADReal d_creep_th1_d_stress = 0.0;
   ADReal d_creep_th2_d_stress = 0.0;

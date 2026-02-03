@@ -1,3 +1,9 @@
+# === 参数研究案例 ===
+# fission_rate: 1.60e+19
+# largestPoreSize: 58
+# pellet_critical_energy: 2.8
+# 生成时间: 2025-10-20 20:26:05
+
 # === 参数研究案例（对齐配对） ===
 # LinearPower: 90
 # initial_T_in: 570.7
@@ -12,39 +18,43 @@ initial_T_out = 582.8
 LinearPower = 90
 LinearPower0_2 = '${fparse LinearPower*0.2}'
 endTime = 2e7
+dtmin = 125
+dt = 1000
+dtMax = 25000
 endTime__50000 = '${fparse endTime-50000}'
 endTime__100000 = '${fparse endTime-150000}'
-Pressure1 = 1.1e6
-Pressure2 = 1.3e6
-pellet_nu = 0.345
+Pressure1 = 1.4e6#1.1bar
+Pressure2 = 2.0e6#10e6
+pellet_nu = 0.316
 pellet_thermal_expansion_coef=1e-5#K-1
 density_percent = 0.95
 # Gc = 6#断裂能
-
-# pellet_critical_fracture_strength=9.0e7#Pa
-# pellet_critical_fracture_strength='${fparse 1.7*10^8*(1-2.62*(1-density_percent))^0.5*exp(-1590/8.314/initial_T)}'#10431.0*0.85#kg⋅m-3理论密度为10.980
-#(1-2.62*(1-0.98))^0.5 = 0.9734,exp(-1590/8.314/293.15)=0.521,pellet_critical_fracture_strength = 83.9MPa
-#(1-2.62*(1-0.98))^0.5 = 0.9734,exp(-1590/8.314/293.15)=0.727,pellet_critical_fracture_strength = 120MPa
-#(1-2.62*(1-0.95))^0.5 = 0.9322,exp(-1590/8.314/293.15)=0.521,pellet_critical_fracture_strength = 82.5MPa
-fission_rate=1.6e19
+fission_rate = 2.00e+19
 grain_size =10
-pellet_critical_energy=2.8
+pellet_critical_energy = 8
 pellet_density='${fparse density_percent*10980}'#10431.0*0.85#kg⋅m-3理论密度为10.980
-largestPoreSize = 58
-
-#《《下面数据取自[1]Thermomechanical Analysis and Irradiation Test of Sintered Dual-Cooled Annular pellet》》
-
+largestPoreSize = 20
+porosity0 = 3.6
+densificationMax = 0.01#《《下面数据取自[1]Thermomechanical Analysis and Irradiation Test of Sintered Dual-Cooled Annular pellet》》
 # 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
 pellet_inner_diameter = 10.291         # 芯块内直径mm
 pellet_outer_diameter = 14.627         # 芯块外直径mm
-length_scale_paramete = 4e-5
-mesh_size = 8.00e-5 #网格尺寸即可
+length_scale_paramete = 5e-5
+mesh_size = '${fparse 2*length_scale_paramete}' #网格尺寸即可
+w = 2 #裂纹尖端时，l是mesh_size的2**w倍
 # length_scale_paramete=${fparse mesh_size}
-n_azimuthal = '${fparse int(3.1415*(pellet_outer_diameter)/mesh_size*1e-3/4)*4}' #int()取整
-n_radial_pellet = '${fparse int((pellet_outer_diameter-pellet_inner_diameter)/mesh_size*1e-3/2)}'
+n_azimuthal = '${fparse int(3.1415*(pellet_outer_diameter)/mesh_size*1e-3/4)*2*w}' #int()取整
+n_radial_pellet = '${fparse int((pellet_outer_diameter-pellet_inner_diameter)/mesh_size*1e-3/2*w/2)}'
 # 计算半径参数 (转换为米)
 pellet_inner_radius = '${fparse pellet_inner_diameter/2*1e-3}'
 pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
+creep_relative_tolerance = 1e-6 #蠕变的相对残差
+creep_absolute_tolerance = '${fparse creep_relative_tolerance*0.01}' #蠕变的绝对残差
+#相场断裂参数：
+m = 4
+a2 = 0.5396842
+a3 = 0
+ksi = 2
 [Mesh]
   [pellet1]
     type = AnnularMeshGenerator
@@ -93,8 +103,8 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = 'sub_Li90_in570_7_in582_8.i'
-    cli_args = 'l=${length_scale_paramete}'
+    input_files = 'sub_fi1_60e+19_la58_pe2_8.i'
+    cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};endTime=${endTime};dtmin=${dtmin};dt=${dt};pellet_inner_diameter=${pellet_inner_diameter};pellet_outer_diameter=${pellet_outer_diameter};dtMax=${dtMax}'
     execute_on = 'TIMESTEP_END'
         # 强制同步参数
         sub_cycling = false          # 禁止子循环
@@ -113,8 +123,8 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
   [to_ALL]
     type = MultiAppGeneralFieldShapeEvaluationTransfer
     to_multi_app = 'fracture'
-    variable = 'psie_active a1 hoop_stress Gc sigma0'
-    source_variable = 'psie_active a1 hoop_stress Gc sigma0'
+    variable = 'psie_active a1 stress_I Gc sigma0'
+    source_variable = 'psie_active a1 stress_I Gc sigma0'
   []
 []
 
@@ -139,6 +149,14 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     order = CONSTANT
     family = MONOMIAL
   [../]
+  [elastic_strain_radial]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [elastic_strain_hoop]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
   [./hoop_stress]
     order = CONSTANT
     family = MONOMIAL
@@ -151,10 +169,6 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     order = CONSTANT
     family = MONOMIAL
   []
-  [stress_III]
-    order = CONSTANT
-    family = MONOMIAL
-  []
   [radial_stress]
     order = CONSTANT
     family = MONOMIAL
@@ -163,6 +177,10 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     block = pellet
     initial_condition = 0.0
   []
+[eig_thermal_trace]
+  order = CONSTANT
+  family = MONOMIAL
+[]
   [sigma0_F_Density]
     family = MONOMIAL
     order = CONSTANT
@@ -221,6 +239,23 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     point1 = '0 0 0'
     point2 = '0 0 1'
   [../]
+    [./elastic_strain_hoop]
+    type = ADRankTwoScalarAux
+    variable = elastic_strain_hoop
+    rank_two_tensor = elastic_strain
+    scalar_type = HoopStress
+    point1 = '0 0 0.01'        # 圆心坐标
+    point2 = '0 0 -0.01'        # 定义旋转轴方向（z轴）
+    execute_on = 'TIMESTEP_END'
+  [../]
+  [./elastic_strain_radial]
+    type = ADRankTwoScalarAux
+    rank_two_tensor = elastic_strain
+    variable = elastic_strain_radial
+    scalar_type = RadialStress
+    point1 = '0 0 0'
+    point2 = '0 0 1'
+  [../]
   [vonMisesStress]
       type = ADRankTwoScalarAux
       variable = vonMises
@@ -236,13 +271,6 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     variable = stress_I
     selected_qp = 0
   [../]
-  [./stress_III]
-    type = ADRankTwoScalarAux
-    scalar_type = MinPrincipal
-    rank_two_tensor = stress
-    variable = stress_III
-    selected_qp = 0
-  [../]
   [radial_stress]
     type = ADRankTwoScalarAux
     rank_two_tensor = stress
@@ -250,6 +278,14 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     scalar_type = RadialStress
     point1 = '0 0 0'
     point2 = '0 0 1'
+  []
+  [eig_thermal_aux]
+    # 计算热应变的迹，它的1/3就是热线应变，可与其它本征应变的进行比较
+    type = ADRankTwoScalarAux
+    rank_two_tensor = thermal_eigenstrain
+    variable = eig_thermal_trace
+    scalar_type = Hydrostatic
+    execute_on = 'TIMESTEP_END'
   []
 []
 
@@ -342,12 +378,12 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     function = gap_pressure_const
     # use_displaced_mesh = true
   []
-  [xplane]
-    type = DirichletBC
-    variable = x
-    boundary = 'pellet_inner pellet_outer'
-    value = 0.01
-  []
+  # [xplane]
+  #   type = DirichletBC
+  #   variable = x
+  #   boundary = 'pellet_inner pellet_outer'
+  #   value = 0.01
+  # []
 
     #芯块包壳间隙压力
     [gap_pressure_pellet_outerx]
@@ -412,17 +448,19 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       type = ADDerivativeParsedMaterial
       property_name = largestPoreSize
       material_property_names = 'burnup'
-      expression = 'PS+PS*10*(burnup/(0.001+burnup))'
+      expression = 'PS+PS*(burnup/(0.01+burnup))'
       constant_names = 'PS'
       constant_expressions = '${largestPoreSize}'
       block = pellet
     []
+
     [porosity]
       type = ADDerivativeParsedMaterial  # 改为ADParsedMaterial
       property_name = porosity
-      coupled_variables = 'T'
-      material_property_names = 'density'
-      expression = '(1-(2.58-5.8e-4*T)*(1-density/10960))/(1-(2.58-5.8e-4*T)*(1-${density_percent}))'
+      material_property_names = 'burnup'
+      expression = 'p0+p0*(burnup/(0.01+burnup))'
+      constant_names = 'p0'
+      constant_expressions = '${porosity0}'
       output_properties = 'porosity'
       outputs = exodus
       block = pellet
@@ -431,37 +469,26 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       type = ADDerivativeParsedMaterial
       property_name = sigma0
       coupled_variables = 'T sigma0_F_Density'
-      material_property_names = 'porosity(T) largestPoreSize density'
+      material_property_names = 'porosity largestPoreSize'
       expression = 'sigma0_F_Density*1.288e9*(largestPoreSize+0.5*GS)^(-0.5)*exp(-0.057*porosity)*(1-2.62*(1-density/10960))^0.5*exp(-1590/8.314/T)'  # 直接使用辅助变量的值
-      constant_names = 'GS'
-      constant_expressions = '${grain_size}'
+      constant_names = 'GS density'
+      constant_expressions = '${grain_size} ${pellet_density}'
       output_properties = 'sigma0'
       outputs = exodus
       block = pellet
     []
-    # [pellet_Gc]
+    # [sigma0]
     #   type = ADDerivativeParsedMaterial
-    #   property_name = Gc
-    #   coupled_variables = 'T'
-    #   expression = 'Gc1*(T/1000)'
-    #   constant_names = 'Gc1'
-    #   constant_expressions = '${pellet_critical_energy}'
-    #   output_properties = 'Gc'
+    #   property_name = sigma0
+    #   coupled_variables = 'T sigma0_F_Density'
+    #   material_property_names = 'porosity largestPoreSize density'
+    #   expression = 'sigma0_F_Density*1.288e9*(largestPoreSize+0.5*GS)^(-0.5)*exp(-0.057*porosity)*(1-2.62*(1-density/10960))^0.5*exp(-1590/8.314/T)'  # 直接使用辅助变量的值
+    #   constant_names = 'GS'
+    #   constant_expressions = '${grain_size}'
+    #   output_properties = 'sigma0'
     #   outputs = exodus
     #   block = pellet
     # []
-    # [sigma0_mat]
-    #   type = ADDerivativeParsedMaterial
-    #   property_name = sigma00
-    #   coupled_variables = 'sigma0_field T'
-    #   material_property_names = 'density'
-    #   expression = 'if(T < 1000,sigma0_field/F*1.7*10^8*(1-2.62*(1-density/10960))^0.5*exp(-1590/8.314/T),sigma0_field/F*(1-2.62*(1-density/10960))^0.5*1.4040832037*10^8)'  # 直接使用辅助变量的值
-    #   constant_names = 'F'
-    #   constant_expressions = '${pellet_critical_fracture_strength}'
-    #   block = pellet
-    # []
-
-
     [pellet_thermal_conductivity] #新加的！！！！！！！！！！！！！！！！！！！！！！
       type = ADParsedMaterial
       property_name = thermal_conductivity #参考某论文来的，不是Fink-Lukuta model（非常复杂）
@@ -522,15 +549,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       block = pellet
     []
     # # # # 蠕变相关
-    [a1]
-      type = ADDerivativeParsedMaterial
-      property_name = a1
-      material_property_names = 'Gc E l sigma0'
-      expression = '1.5*E*Gc/sigma0/sigma0/l'
-      output_properties = 'a1'
-      outputs = exodus
-      block = pellet
-    []
+
     [creep]
       type = UO2CreepRateBaseJ2Creep
       phase_field = d
@@ -542,10 +561,10 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       # 相场断裂相关参数
       use_transition_stress = false
       # use_transient_creep = true
-      use_three_shear_modulus = true
+      use_three_shear_modulus = false
 
-      relative_tolerance = 1e-8 #蠕变的相对残差
-      absolute_tolerance = 1e-10 #蠕变的绝对残差
+      relative_tolerance = ${creep_relative_tolerance} #蠕变的相对残差
+      absolute_tolerance = ${creep_absolute_tolerance} #蠕变的绝对残差
 
       output_properties = 'effective_creep_strain psic_active'
       outputs = exodus 
@@ -556,6 +575,8 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       coupled_variables = 'T'
       material_property_names = 'burnup density'
       expression = '(density*5.577e-5*burnup + 1.101e-29*pow(2800-T,11.73)*exp(-0.0162*(2800-T))*(1-exp(-0.0178*density*burnup)))/3'
+      outputs = exodus
+      output_properties = 'swelling_coef'
       block = pellet
     []
 
@@ -572,7 +593,11 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       property_name = densification_coef
       coupled_variables = 'T'
       material_property_names = 'CD_factor(T) burnup'
-      expression = '0.01 * (exp(-4.605 * (burnup*1) / (CD_factor * 0.006024)) - 1)/3'# 0.6024是5000MWd/tU的转换系数
+      expression = 'densificationMax * (exp(-4.605 * (burnup*1) / (CD_factor * 0.006024)) - 1)/3'# 0.6024是5000MWd/tU的转换系数
+      constant_names = 'densificationMax'
+      constant_expressions = '${densificationMax}'
+      outputs = exodus
+      output_properties = 'densification_coef'
       block = pellet
     []
     # 肿胀应变计算
@@ -596,30 +621,66 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
       eigenstrain_names = 'thermal_eigenstrain swelling_eigenstrain densification_eigenstrain'
       block = pellet
     []
-    [crack_geometric]
-      type = CrackGeometricFunction
-      property_name = alpha
-      expression = 'd'
-      phase_field = d
-      block = pellet
-    []
+    # [crack_geometric]
+    #   type = CrackGeometricFunction
+    #   property_name = alpha
+    #   expression = 'd'
+    #   phase_field = d
+    #   block = pellet
+    # []
+    # [a1]
+    #   type = ADDerivativeParsedMaterial
+    #   property_name = a1
+    #   material_property_names = 'Gc E l sigma0'
+    #   expression = '1.5*E*Gc/sigma0/sigma0/l'
+    #   output_properties = 'a1'
+    #   outputs = exodus
+    #   block = pellet
+    # []
+    # [degradation]
+    #   type = RationalDegradationFunction
+    #   property_name = g
+    #   expression = (1-d)^p/((1-d)^p+a1*d*(1+a2*d))*(1-eta)+eta
+    #   phase_field = d
+    #   material_property_names = 'a1'
+    #   parameter_names = 'p a2 eta'
+    #   parameter_values = '2 2 1e-6'
+    #   block = pellet
+    # []
+      # 相场断裂模型材料
+  [crack_geometric]
+    type = CrackGeometricFunction
+    property_name = alpha
+    expression = 'ksi*d+(1-ksi)*d*d'
+    parameter_names = 'ksi'
+    parameter_values = '${ksi}'
+    phase_field = d
+  []
+  [a1]
+    type = ADDerivativeParsedMaterial
+    property_name = a1
+    material_property_names = 'Gc E l sigma0'
+    expression = '4*E*Gc/sigma0/sigma0/l/3.14159'
+    output_properties = 'a1'
+    outputs = exodus
+  []
+  [degradation]
+    type = RationalDegradationFunction
+    property_name = g
+    expression = (1-d)^p/((1-d)^p+a1*d*(1+a2*d+a3*d^2))
+    phase_field = d
+    material_property_names = 'a1'
+    parameter_names = 'p a2 a3'
+    parameter_values = '${m} ${a2} ${a3}'
+  []
 
-    [degradation]
-      type = RationalDegradationFunction
-      property_name = g
-      expression = (1-d)^p/((1-d)^p+a1*d*(1+a2*d))*(1-eta)+eta
-      phase_field = d
-      material_property_names = 'a1'
-      parameter_names = 'p a2 eta'
-      parameter_values = '2 2 1e-6'
-      block = pellet
-    []
     [Elasticity]
       type = IsotropicElasticity
       youngs_modulus = E
       poissons_ratio = nu
       phase_field = d
       degradation_function = g
+      kinematic_assumption = PLANE_STRESS
       decomposition = SPECTRAL
       use_threshold = false
       use_history_max = false
@@ -701,10 +762,10 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
 []
 [dt_limit_func]
   type = ParsedFunction
-  expression = 'if(t < 12000, 2000,
-                 if(t < 110000, 500,
-                 if(t < (${endTime__100000}-500),100000,
-                 if(t < (${endTime__50000}+10000), 500,10000))))'
+  expression = 'if(t < 10000, 2000,
+                 if(t < 110000, ${dt},
+                 if(t < (${endTime__100000}-5000),${dtMax},
+                 if(t < (${endTime__50000}+10000), ${dt},10000))))'
 []
 []
 
@@ -737,15 +798,15 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   line_search = 'bt'
   automatic_scaling = true # 启用自动缩放功能，有助于改善病态问题的收敛性
   compute_scaling_once = true  # 每个时间步都重新计算缩放
-  nl_max_its = 150
+  nl_max_its = 80
   nl_rel_tol = 5e-6 # 非线性求解的相对容差
   nl_abs_tol = 5e-6 # 非线性求解的绝对容差
   l_tol = 5e-8  # 线性求解的容差
   l_abs_tol = 5e-9 # 线性求解的绝对容差
-  l_max_its = 500 # 线性求解的最大迭代次数
+  l_max_its = 200 # 线性求解的最大迭代次数
   # abort_on_solve_fail = true
-  dtmin = 500
-  dtmax = 100000
+  dtmin = ${dtmin}
+  dtmax = 5000000
   end_time = ${endTime} # 总时间24h
 
   fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
@@ -761,13 +822,13 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   [Markers]
     [marker]
       type = PhasePiledFractureHSMarker
-      von_mises_variable = hoop_stress
+      von_mises_variable = stress_I
       sigma0 = sigma0
-      x1 = 0.0001 #d变量小于x1时，标记为粗网格
-      x2 = 0.05 #d变量在x1和x2之间时，标记为细网格
-      xmax = 0.1 #d变量大于xmax时，一定是细网格
-      y1 = 0.6 #vonMises应力小于y1时，标记为粗网格
-      y2 = 0.7 #vonMises应力大于y2之间时，标记为细网格
+      x1 = 0.000001 #d变量小于x1时，标记为粗网格
+      x2 = 0.005 #d变量在x1和x2之间时，标记为细网格
+      xmax = 0.01 #d变量大于xmax时，一定是细网格
+      y1 = 0.45 #vonMises应力小于y1时，标记为粗网格
+      y2 = 0.5 #vonMises应力大于y2之间时，标记为细网格
       variable = d
       timeD = 3
       timeStress = 5

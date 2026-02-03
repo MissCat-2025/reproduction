@@ -88,7 +88,9 @@ UO2DegradablePowerLawCreepStressUpdate::computeStressInitialize(
   const ADReal inv_RT = 1.0 / RT;
   
   // 使用氧化学计量比
-  const ADReal x = _oxygen_ratio[_qp];
+  ADReal x = _oxygen_ratio[_qp];
+  if (MetaPhysicL::raw_value(x) <= 1.0)
+    x = 1.0 + 1e-12;
   const ADReal log_x = std::log10(x);
   const ADReal exp_common = std::exp(-20.0 / log_x - 8.0);
   const ADReal denom = 1.0 / (exp_common + 1.0);
@@ -123,6 +125,8 @@ UO2DegradablePowerLawCreepStressUpdate::computeResidual(
     stress = _g[_qp] * (effective_trial_stress - _three_shear_modulus * scalar);
   else
     stress = effective_trial_stress - _three_shear_modulus * scalar;
+  if (MetaPhysicL::raw_value(stress) <= 0.0)
+    return -scalar;
   
   // 计算各分量蠕变率
   ADReal creep_th1 = 0.0;
@@ -172,13 +176,15 @@ UO2DegradablePowerLawCreepStressUpdate::computeDerivative(
     stress = _g[_qp] * (effective_trial_stress - _three_shear_modulus * scalar);
   else
     stress = effective_trial_stress - _three_shear_modulus * scalar;
+  if (MetaPhysicL::raw_value(stress) <= 0.0)
+    return -1.0;
   
   // 计算应力对scalar的导数
   ADReal d_stress_d_scalar;
   if (_use_stress_degradation)
     d_stress_d_scalar = -_g[_qp] * _three_shear_modulus;
   else
-    d_stress_d_scalar = _three_shear_modulus;
+    d_stress_d_scalar = -_three_shear_modulus;
   
   // 计算各项蠕变率对应力的导数
   ADReal d_creep_th1_d_stress = 0.0;

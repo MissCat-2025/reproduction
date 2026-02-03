@@ -20,7 +20,6 @@ public:
   virtual void updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elastic_strain) override;
 
 protected:
-
   virtual ADReal computeResidual(const ADReal & effective_trial_stress,
                                  const ADReal & delta_ec) override;
 

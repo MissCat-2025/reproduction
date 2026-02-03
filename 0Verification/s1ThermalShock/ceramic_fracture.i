@@ -198,8 +198,8 @@ Gc=${fparse (1+1/6)*Gc0}
     property_name = a1
     material_property_names = 'Gc E l sigma0'
     expression = '4*E*Gc/sigma0/sigma0/l/3.14159'
-    output_properties = 'a1'
-    outputs = exodus
+    # output_properties = 'a1'
+    # outputs = exodus
   []
   [degradation]
     type = RationalDegradationFunction

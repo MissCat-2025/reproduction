@@ -1,8 +1,39 @@
 // IsotropicElasticity.C 修正版
 #include "IsotropicElasticity.h"
 #include "RaccoonUtils.h"
+#include <cmath>
 
 registerMooseObject("reproductionApp", IsotropicElasticity);
+
+namespace
+{
+void
+computeIsotropicElasticConstants(const ADReal & E,
+                                 const ADReal & nu,
+                                 const unsigned int dim,
+                                 const IsotropicElasticity::KinematicAssumption kinematic_assumption,
+                                 ADReal & G,
+                                 ADReal & lambda,
+                                 ADReal & K)
+{
+  G = E / (2.0 * (1.0 + nu));
+
+  if (dim == 2)
+  {
+    if (kinematic_assumption == IsotropicElasticity::KinematicAssumption::plane_stress)
+      lambda = E * nu / (1.0 - nu * nu);
+    else
+      lambda = E * nu / ((1.0 + nu) * (1.0 - 2.0 * nu));
+
+    K = lambda + (2.0 * G) / dim;
+  }
+  else
+  {
+    lambda = E * nu / ((1.0 + nu) * (1.0 - 2.0 * nu));
+    K = lambda + (2.0 * G) / dim;
+  }
+}
+}
 
 InputParameters
 IsotropicElasticity::validParams()
@@ -22,6 +53,11 @@ IsotropicElasticity::validParams()
   
   MooseEnum decomp_options("NONE SPECTRAL VOLDEV MAXPRINCIPAL", "NONE");
   params.addParam<MooseEnum>("decomposition", decomp_options, "The decomposition method");
+
+  MooseEnum kinematic_options("PLANE_STRAIN PLANE_STRESS", "PLANE_STRAIN");
+  params.addParam<MooseEnum>("kinematic_assumption",
+                             kinematic_options,
+                             "Kinematic assumption for 2D problems");
   
   params.addParam<bool>("use_threshold", false, "Whether to use threshold energy");
   params.addParam<MaterialPropertyName>("tensile_strength", "sigma0", "Critical stress for threshold");
@@ -37,6 +73,7 @@ IsotropicElasticity::IsotropicElasticity(
     DerivativeMaterialPropertyNameInterface(),
     _youngs_modulus(getADMaterialProperty<Real>(getParam<MaterialPropertyName>("youngs_modulus"))),
     _poissons_ratio(getADMaterialProperty<Real>(getParam<MaterialPropertyName>("poissons_ratio"))),
+    _kinematic_assumption(getParam<MooseEnum>("kinematic_assumption").getEnum<KinematicAssumption>()),
     
     _d_name(getVar("phase_field", 0)->name()),
     
@@ -79,6 +116,7 @@ ADReal
 IsotropicElasticity::applyThreshold(ADReal psie_active_raw)
 {
   ADReal psie_active_final = psie_active_raw;
+  const Real psie_active_raw_value = MetaPhysicL::raw_value(psie_active_raw);
   
   // 首先应用历史最大变量
   if (_use_history_max)
@@ -91,7 +129,32 @@ IsotropicElasticity::applyThreshold(ADReal psie_active_raw)
   if (_use_threshold)
   {
     ADReal threshold = 0.5 * _sigma_c[_qp] * _sigma_c[_qp] / _youngs_modulus[_qp];
+    const Real threshold_value = MetaPhysicL::raw_value(threshold);
+    const Real psie_before_threshold_value = MetaPhysicL::raw_value(psie_active_final);
     psie_active_final = std::max(psie_active_final, threshold);
+    const Real psie_after_threshold_value = MetaPhysicL::raw_value(psie_active_final);
+
+  //   if (_fe_problem.processor_id() == 0 &&
+  //       _fe_problem.timeStep() % 10 == 0 &&
+  //       (threshold_value > psie_before_threshold_value || _qp == 0))
+  //   {
+  //     const dof_id_type elem_id = _current_elem ? _current_elem->id() : 0;
+  //     _console << "\n============ Threshold Debug (timestep: " << _fe_problem.timeStep() << ") ============"
+  //              << std::endl;
+  //     _console << "time = " << _t << std::endl;
+  //     _console << "elem_id = " << elem_id << ", qp = " << _qp << std::endl;
+  //     _console << "psie_active_raw = " << psie_active_raw_value << std::endl;
+  //     _console << "psie_active_before_threshold = " << psie_before_threshold_value << std::endl;
+  //     _console << "threshold = 0.5*sigma_c^2/E = " << threshold_value << std::endl;
+  //     _console << "sigma_c = " << MetaPhysicL::raw_value(_sigma_c[_qp]) << std::endl;
+  //     _console << "E = " << MetaPhysicL::raw_value(_youngs_modulus[_qp]) << std::endl;
+  //     if (_use_history_max)
+  //       _console << "history_max = " << _history_max[_qp] << ", history_max_old = " << _history_max_old[_qp]
+  //                << std::endl;
+  //     _console << "psie_active_after_threshold = " << psie_after_threshold_value << std::endl;
+  //     _console << "threshold_applied = " << (threshold_value > psie_before_threshold_value ? 1 : 0) << std::endl;
+  //     _console << "===================================" << std::endl;
+  //   }
   }
   
   return psie_active_final;
@@ -130,11 +193,13 @@ IsotropicElasticity::computeThreeShearModulus()
 ADRankTwoTensor
 IsotropicElasticity::computeStressIntact(const ADRankTwoTensor & strain)
 {
-  // 计算拉梅常数
   const ADReal nu = _poissons_ratio[_qp];
   const ADReal E = _youngs_modulus[_qp];
-  const ADReal K = E  / (3.0 *  (1.0 - 2.0 * nu));
-  const ADReal G = E / (2.0 * (1.0 + nu));
+  ADReal G;
+  ADReal lambda;
+  ADReal K;
+  computeIsotropicElasticConstants(E, nu, LIBMESH_DIM, _kinematic_assumption, G, lambda, K);
+  (void)lambda;
   
   const ADRankTwoTensor I2(ADRankTwoTensor::initIdentity);
   ADRankTwoTensor stress_intact = K * strain.trace() * I2 + 2.0 * G * strain.deviatoric();
@@ -146,17 +211,20 @@ IsotropicElasticity::computeStressIntact(const ADRankTwoTensor & strain)
 ADRankTwoTensor
 IsotropicElasticity::computeStressNoDecomposition(const ADRankTwoTensor & strain)
 {
-  // 计算拉梅常数
   const ADReal nu = _poissons_ratio[_qp];
   const ADReal E = _youngs_modulus[_qp];
-  const ADReal K = E  / (3.0 *  (1.0 - 2.0 * nu));
-  const ADReal G = E / (2.0 * (1.0 + nu));
+  ADReal G;
+  ADReal lambda;
+  ADReal K;
+  computeIsotropicElasticConstants(E, nu, LIBMESH_DIM, _kinematic_assumption, G, lambda, K);
   
   const ADRankTwoTensor I2(ADRankTwoTensor::initIdentity);
   ADRankTwoTensor stress_intact = K * strain.trace() * I2 + 2.0 * G * strain.deviatoric();
   ADRankTwoTensor stress = _g[_qp] * stress_intact;
 
-  ADReal psie_active_raw = 0.5 * stress_intact.doubleContraction(strain);
+  const ADReal strain_tr = strain.trace();
+  ADReal psie_active_raw =
+      0.5 * lambda * strain_tr * strain_tr + G * strain.doubleContraction(strain);
   
   // 更新历史最大变量
   updateHistoryMax(psie_active_raw);
@@ -173,12 +241,12 @@ IsotropicElasticity::computeStressNoDecomposition(const ADRankTwoTensor & strain
 ADRankTwoTensor
 IsotropicElasticity::computeStressSpectralDecomposition(const ADRankTwoTensor & strain)
 {
-  // 计算拉梅常数
   const ADReal nu = _poissons_ratio[_qp];
   const ADReal E = _youngs_modulus[_qp];
-  const ADReal K = E  / (3.0 *  (1.0 - 2.0 * nu));
-  const ADReal G = E / (2.0 * (1.0 + nu));
-  const ADReal lambda = K - 2 * G / LIBMESH_DIM;
+  ADReal G;
+  ADReal lambda;
+  ADReal K;
+  computeIsotropicElasticConstants(E, nu, LIBMESH_DIM, _kinematic_assumption, G, lambda, K);
   
   const ADRankTwoTensor I2(ADRankTwoTensor::initIdentity);
   ADReal strain_tr = strain.trace();
@@ -214,11 +282,12 @@ IsotropicElasticity::computeStressSpectralDecomposition(const ADRankTwoTensor & 
 ADRankTwoTensor
 IsotropicElasticity::computeStressVolDevDecomposition(const ADRankTwoTensor & strain)
 {
-  // 计算拉梅常数
   const ADReal nu = _poissons_ratio[_qp];
   const ADReal E = _youngs_modulus[_qp];
-  const ADReal G = E / (2.0 * (1.0 + nu));
-  const ADReal K = E / (3.0 * (1.0 - 2.0 * nu));
+  ADReal G;
+  ADReal lambda;
+  ADReal K;
+  computeIsotropicElasticConstants(E, nu, LIBMESH_DIM, _kinematic_assumption, G, lambda, K);
   
   const ADRankTwoTensor I2(ADRankTwoTensor::initIdentity);
 
@@ -235,7 +304,7 @@ IsotropicElasticity::computeStressVolDevDecomposition(const ADRankTwoTensor & st
   ADRankTwoTensor stress = _g[_qp] * stress_pos + stress_neg;
 
   // 能量密度计算
-  ADReal psie_intact = 0.5 * K * strain_tr * strain_tr + G * strain_dev.doubleContraction(strain_dev);
+  ADReal psie_intact = 0.5 * lambda * strain_tr * strain_tr + G * strain.doubleContraction(strain);
   ADReal psie_inactive = 0.5 * K * strain_tr_neg * strain_tr_neg;
   ADReal psie_active_raw = psie_intact - psie_inactive;
   
@@ -257,8 +326,11 @@ IsotropicElasticity::computeStressMaxPrincipalDecomposition(const ADRankTwoTenso
   // 基于 SmallDeformationH.C 的最大主应力分解算法
   const ADReal nu = _poissons_ratio[_qp];
   const ADReal E = _youngs_modulus[_qp];
-  const ADReal K = E / (3.0 * (1.0 - 2.0 * nu));
-  const ADReal G = E / (2.0 * (1.0 + nu));
+  ADReal G;
+  ADReal lambda;
+  ADReal K;
+  computeIsotropicElasticConstants(E, nu, LIBMESH_DIM, _kinematic_assumption, G, lambda, K);
+  (void)lambda;
   
   const ADRankTwoTensor I2(ADRankTwoTensor::initIdentity);
   ADRankTwoTensor stress_intact = K * strain.trace() * I2 + 2.0 * G * strain.deviatoric();

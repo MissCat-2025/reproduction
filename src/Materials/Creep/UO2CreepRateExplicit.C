@@ -60,7 +60,9 @@ UO2CreepRateExplicit::computeQpProperties()
 {
   // 预计算常用值
   const ADReal T = _temperature[_qp];
-  const ADReal x = _oxygen_ratio[_qp];
+  ADReal x = _oxygen_ratio[_qp];
+  if (MetaPhysicL::raw_value(x) <= 1.0)
+    x = 1.0 + 1e-12;
   const ADReal RT = _gas_constant * T;
   const ADReal inv_RT = 1.0 / RT;
   

@@ -1,3 +1,9 @@
+# === 参数研究案例 ===
+# fission_rate: 1.60e+19
+# largestPoreSize: 58
+# pellet_critical_energy: 2.8
+# 生成时间: 2025-10-20 20:26:05
+
 # === 参数研究案例（对齐配对） ===
 # LinearPower: 90
 # initial_T_in: 570.7
@@ -21,19 +27,29 @@
 # 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
 
 # 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
-pellet_inner_diameter = 10.291         # 芯块内直径mm
-pellet_outer_diameter = 14.627         # 芯块外直径mm
+pellet_inner_diameter = '${pellet_inner_diameter}'         # 芯块内直径mm
+pellet_outer_diameter = '${pellet_outer_diameter}'         # 芯块外直径mm
 # length_scale_paramete = 4.50e-5
-endTime = 2e7
+endTime = ${endTime}
 endTime__50000 = '${fparse endTime-5000}'
 endTime__100000 = '${fparse endTime-100000}'
-mesh_size = 8.00e-5 #网格尺寸即可
+
+mesh_size = '${mesh_size}' #网格尺寸即可
+w = ${w} #裂纹尖端时，l是h的2**w倍
 # length_scale_paramete=${fparse mesh_size}
-n_azimuthal = '${fparse int(3.1415*(pellet_outer_diameter)/mesh_size*1e-3/4)*4}' #int()取整
-n_radial_pellet = '${fparse int((pellet_outer_diameter-pellet_inner_diameter)/mesh_size*1e-3/2)}'
+n_azimuthal = '${fparse int(3.1415*(pellet_outer_diameter)/mesh_size*1e-3/4)*2*w}' #int()取整
+n_radial_pellet = '${fparse int((pellet_outer_diameter-pellet_inner_diameter)/mesh_size*1e-3/2*w/2)}'
 # 计算半径参数 (转换为米)
 pellet_inner_radius = '${fparse pellet_inner_diameter/2*1e-3}'
 pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
+
+#相场断裂参数：
+m = ${m}
+a2 = ${a2}
+a3 = ${a3}
+
+
+
 [Mesh]
 [pellet1]
   type = AnnularMeshGenerator
@@ -104,7 +120,7 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
     family = MONOMIAL
     order = CONSTANT
   []
-  [hoop_stress]
+  [stress_I]
     family = MONOMIAL
     order = CONSTANT
   []
@@ -178,23 +194,23 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
   block = pellet
 []
   #断裂力学-CZM模型
-  [degradation]
-    type = RationalDegradationFunction
-    property_name = g
-    expression = (1-d)^p/((1-d)^p+a1*d*(1+a2*d))*(1-eta)+eta
-    phase_field = d
-    material_property_names = 'a1'
-    parameter_names = 'p a2 eta'
-    parameter_values = '2 2 1e-6'
-    block = pellet
-  []
   [crack_geometric]
     type = CrackGeometricFunction
     property_name = alpha
-    expression = 'd'
+    expression = 'ksi*d+(1-ksi)*d*d'
+    parameter_names = 'ksi'
+    parameter_values = '${ksi}'
     phase_field = d
-    block = pellet
-  [] 
+  []
+  [degradation]
+    type = RationalDegradationFunction
+    property_name = g
+    expression = (1-d)^p/((1-d)^p+a1*d*(1+a2*d+a3*d^2))
+    phase_field = d
+    material_property_names = 'a1'
+    parameter_names = 'p a2 a3'
+    parameter_values = '${m} ${a2} ${a3}'
+  []
   [psi]
     type = ADDerivativeParsedMaterial
     property_name = psi
@@ -229,8 +245,8 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
   l_abs_tol = 5e-9 # 线性求解的绝对容差
   l_max_its = 100 # 线性求解的最大迭代次数
   abort_on_solve_fail = true
-  dtmin = 500
-  dtmax = 100000
+  dtmin = ${dtmin}
+  dtmax = 50000
   end_time = ${endTime} # 总时间24h
 
   fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
@@ -242,10 +258,10 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
 [Functions]
   [dt_limit_func]
     type = ParsedFunction
-    expression = 'if(t < 12000, 2000,
-                   if(t < 110000, 500,
-                   if(t < (${endTime__100000}-500),100000,
-                   if(t < (${endTime__50000}+10000), 500,10000))))'
+    expression = 'if(t < 10000, 2000,
+                  if(t < 110000, ${dt},
+                  if(t < (${endTime__100000}-5000),${dtMax},
+                  if(t < (${endTime__50000}+10000), ${dt},10000))))'
   []
 []
 [Adaptivity]
@@ -255,12 +271,12 @@ pellet_outer_radius = '${fparse pellet_outer_diameter/2*1e-3}'
   [Markers]
     [marker]
       type = PhasePiledFractureHSMarker
-      von_mises_variable = hoop_stress
+      von_mises_variable = stress_I
       sigma0 = sigma0
-      x1 = 0.0001 #d变量小于x1时，标记为粗网格
-      x2 = 0.05 #d变量在x1和x2之间时，标记为细网格
-      xmax = 0.1 #d变量大于xmax时，一定是细网格
-      y1 = 0.4 #vonMises应力小于y1时，标记为粗网格
+      x1 = 0.000001 #d变量小于x1时，标记为粗网格
+      x2 = 0.005 #d变量在x1和x2之间时，标记为细网格
+      xmax = 0.01 #d变量大于xmax时，一定是细网格
+      y1 = 0.45 #vonMises应力小于y1时，标记为粗网格
       y2 = 0.5 #vonMises应力大于y2之间时，标记为细网格
       variable = d
       timeD = 3

@@ -82,7 +82,9 @@ UO2PowerLawCreepStressUpdate::computeStressInitialize(
   const ADReal inv_RT = 1.0 / RT;
   
   // 使用氧化学计量比
-  const ADReal x = _oxygen_ratio[_qp];
+  ADReal x = _oxygen_ratio[_qp];
+  if (MetaPhysicL::raw_value(x) <= 1.0)
+    x = 1.0 + 1e-12;
   const ADReal log_x = std::log10(x);
   const ADReal exp_common = std::exp(-20.0 / log_x - 8.0);
   const ADReal denom = 1.0 / (exp_common + 1.0);
@@ -181,6 +183,8 @@ UO2PowerLawCreepStressUpdate::computeResidual(
   
   // 计算实际驱动蠕变本构的应力 (stress_creep_driving = g * sigma_eff_rr)
   ADReal stress_creep_driving = _g[_qp] * stress_rr;
+  if (MetaPhysicL::raw_value(stress_creep_driving) <= 0.0)
+    return -scalar;
 
   // 计算各分量蠕变率，注意这里使用的是 stress_creep_driving
   ADReal creep_th1 = _fission_term * _density_term1 * stress_creep_driving * _exp_Q1;
@@ -205,12 +209,12 @@ UO2PowerLawCreepStressUpdate::computeDerivative(
 
   // 计算实际驱动蠕变本构的应力 (stress_creep_driving = g * sigma_eff_rr)
   ADReal stress_creep_driving = _g[_qp] * stress_rr;
+  if (MetaPhysicL::raw_value(stress_creep_driving) <= 0.0)
+    return -1.0;
   
   // 计算蠕变本构中各项对 stress_creep_driving 的导数
   ADReal d_creep_th1_d_scd = _fission_term * _density_term1 * _exp_Q1;
-  ADReal d_creep_th2_d_scd = 0.0; // 初始化
-  if (MetaPhysicL::raw_value(stress_creep_driving) > 0 || MetaPhysicL::raw_value(stress_creep_driving) < 0 ) // 避免对0取pow(..., 3.5)
-      d_creep_th2_d_scd = 4.5 * _a8 * _density_term2 * std::pow(stress_creep_driving, 3.5) * _exp_Q2;
+  ADReal d_creep_th2_d_scd = 4.5 * _a8 * _density_term2 * std::pow(stress_creep_driving, 3.5) * _exp_Q2;
   
   ADReal d_creep_ir_d_scd = _a7 * _fission_rate * _exp_Q3;
   

@@ -12,6 +12,12 @@ class IsotropicElasticity : public ElasticityModel,
                                                     public DerivativeMaterialPropertyNameInterface
 {
 public:
+  enum class KinematicAssumption
+  {
+    plane_strain,
+    plane_stress
+  };
+
   static InputParameters validParams();
   IsotropicElasticity(const InputParameters & parameters);
   
@@ -26,6 +32,7 @@ protected:
   // 弹性参数
   const ADMaterialProperty<Real> & _youngs_modulus;
   const ADMaterialProperty<Real> & _poissons_ratio;
+  const KinematicAssumption _kinematic_assumption;
   
   // 相场变量名
   const VariableName _d_name;

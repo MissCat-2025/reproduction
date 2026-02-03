@@ -53,8 +53,12 @@ ElasticityModel::initQpStatefulProperties()
 
 void
 ElasticityModel::updateState(const ADRankTwoTensor & mechanical_strain,
-                                             ADRankTwoTensor & stress)
+                             ADRankTwoTensor & stress)
 {
   _elastic_strain[_qp] = mechanical_strain;
-  _creep_model->updateState(stress, _elastic_strain[_qp]);
+
+  if (_creep_model)
+    _creep_model->updateState(stress, _elastic_strain[_qp]);
+  else
+    stress = computeStress(_elastic_strain[_qp]);
 }

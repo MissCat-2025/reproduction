@@ -27,18 +27,19 @@ checkpoint_config = '''
 parameter_matrix = {
 
     # Gc = 2.896 #断裂能
-    # 'length_scale_paramete': [3.5e-5,4e-5,6e-5,8e-5],
-    # 'Gc': [4.0,5,7.5,10,15,1,0.1],
-    'fission_rate': [1.6e19,1.8e19,2e19],
-    'largestPoreSize': [59,58],
-    'pellet_critical_energy': [2.8,3,3.2],
+    # 'dt':[1000,800,600,400],
+    # 'dtMax':[50000,75000,100000],
+
+    # 'length_scale_paramete':5e-5],],
+    'pellet_critical_energy':[8],
+    # 'creep_relative_tolerance':[1e-6,1e-7,1e-8,1e-9,1e-10],
     # 'min_gap':[8e-6],       # 'gap2': [0.58,0.55,0.50],
     # 'gap3': [0.3,0.2,0.1]
     # 'sigma0X': [0.7],
     # 'GcX': [0.9,0.8],
     # 'pellet_nu':[0.345],
     # 'Gc': [4,5,6,7,8,10],
-    # 'fission_rate': [3.6e19],
+    # 'fission_rate': [1.2e19,2.4e19,4.8e19,9.6e19,19.2e19],
     # 'pellet_critical_fracture_strength':[9e7,8e7,7e7,6e7]
 }
 

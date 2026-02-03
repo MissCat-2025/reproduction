@@ -6,6 +6,7 @@
 #include "ElasticityModel.h"
 #include "IsotropicElasticity.h"
 #include "libmesh/utility.h"
+#include <limits>
 registerMooseObject("reproductionApp", J2Creep);
 
 InputParameters
@@ -160,7 +161,9 @@ J2Creep::computeResidual(const ADReal & effective_trial_stress, const ADReal & d
   
   ADReal ec_current = _ec_old[_qp] + delta_ec;
   // 计算非塑性有效应力
-  ADReal effective_stress_np = effective_trial_stress - delta_ec*_three_shear_modulus;
+  ADReal effective_stress_np = effective_trial_stress - delta_ec * _three_shear_modulus;
+  // if (MetaPhysicL::raw_value(effective_stress_np) < 0.0)
+  //   effective_stress_np = 0.0;
   // 计算蠕变率
   ADReal creep_rate = computeCreepRate(effective_stress_np, ec_current);
   // 返回残差
@@ -175,7 +178,9 @@ J2Creep::computeDerivative(const ADReal & effective_trial_stress, const ADReal &
   // 残差对 delta_ec 的导数
   ADReal ec_current = _ec_old[_qp] + delta_ec;
   // 计算非塑性有效应力
-  ADReal effective_stress_np = effective_trial_stress - delta_ec*_three_shear_modulus;
+  ADReal effective_stress_np = effective_trial_stress - delta_ec * _three_shear_modulus;
+  // if (MetaPhysicL::raw_value(effective_stress_np) < 0.0)
+  //   effective_stress_np = 0.0;
   
 
   
@@ -199,14 +204,7 @@ J2Creep::computeReferenceResidual(const ADReal & effective_trial_stress, const A
 ADReal
 J2Creep::computeCreepRate(const ADReal & effective_stress, const ADReal & effective_creep_strain)
 {
-  // 默认实现：简单的幂律蠕变 g(σ) = A * σ^n
-  // 子类应该覆盖这个函数以实现具体的蠕变模型
-  if (effective_stress <= 1e-15)
-    return 0.0;
-  
-  // 临时使用简单的线性关系
-  ADReal A = 1.0e-6; // 蠕变系数，应该从输入参数获取
-  return A * effective_stress;
+  return 0.0;
 }
 
 ADReal
@@ -214,11 +212,7 @@ J2Creep::computeCreepRateStressDerivative(const ADReal & effective_stress, const
 {
   // 蠕变率对应力的导数
   // 默认实现：对应简单线性关系的导数
-  if (effective_stress <= 1e-15)
-    return 0.0;
-  
-  ADReal A = 1.0e-6; // 蠕变系数
-  return A;
+  return 0.0;
 }
 
 ADReal
