@@ -1,10 +1,10 @@
 // include/materials/UO2CreepRateExplicit.h
 #pragma once
-#include "ADMaterial.h"
+#include "Material.h"
 #include "RankTwoTensor.h"
 #include "RankTwoScalarTools.h"
 
-class UO2CreepRateExplicit : public ADMaterial
+class UO2CreepRateExplicit : public Material
 {
 public:
   static InputParameters validParams();
@@ -15,8 +15,8 @@ protected:
   virtual void initQpStatefulProperties() override;
   
   // 输入变量
-  const ADVariableValue & _temperature;
-  const ADVariableValue & _oxygen_ratio;
+  const VariableValue & _temperature;
+  const VariableValue & _oxygen_ratio;
   
   // 输入参数 - 这些是常量，使用Real
   const Real _fission_rate;
@@ -26,17 +26,17 @@ protected:
   
   // 应力相关
   const MaterialProperty<RankTwoTensor> & _stress_old;  // 旧应力不需要AD
-  ADMaterialProperty<RankTwoTensor> & _stress_deviator;
-  const ADVariableValue & _vonMisesStress;
+  MaterialProperty<RankTwoTensor> & _stress_deviator;
+  const VariableValue & _vonMisesStress;
   
   // 激活能 - Q1和Q2只依赖于oxygen_ratio，需要AD
-  ADMaterialProperty<Real> & _Q1;
-  ADMaterialProperty<Real> & _Q2;
+  MaterialProperty<Real> & _Q1;
+  MaterialProperty<Real> & _Q2;
   const Real _Q3;  // Q3是常量
   
   // 蠕变率
-  ADMaterialProperty<RankTwoTensor> & _creep_rate;
-  ADMaterialProperty<Real> & _effective_creep;
+  MaterialProperty<RankTwoTensor> & _creep_rate;
+  MaterialProperty<Real> & _effective_creep;
   // 瞬态蠕变相关属性
   const bool _consider_transient_creep; // 是否考虑瞬态蠕变
   MaterialProperty<Real> & _max_stress_time; // 最大应力应用时间

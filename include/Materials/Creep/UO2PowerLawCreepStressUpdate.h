@@ -83,4 +83,7 @@ protected:
 
     // ——— 新增 —— 用于存储弹性偏应力，后面做谱分解
   ADMaterialProperty<RankTwoTensor> & _deviatoric_trial_stress;
+  
+  // 选择计算三倍剪切模量的方法
+  const bool _use_new_three_shear_modulus;
 };

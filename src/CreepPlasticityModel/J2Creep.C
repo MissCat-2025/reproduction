@@ -54,6 +54,9 @@ J2Creep::J2Creep(const InputParameters & parameters) :
   _gc(getADMaterialProperty<Real>(prependBaseName("degradation_function", true))),
   _dgc_dd(getADMaterialProperty<Real>(derivativePropertyName(prependBaseName("degradation_function", true), {_d_name})))
 {
+  // >>> MOD-BEGIN (2026-02-03): enable solver range enforcement for delta_ec
+  _check_range = true;
+  // <<< MOD-END
 }
 
 void
@@ -97,7 +100,11 @@ J2Creep::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elastic_strain)
   }
   else
   {
-    _three_shear_modulus =  _elasticity_model->computeStress(_Nc[_qp]).doubleContraction(_Nc[_qp]);
+    IsotropicElasticity * iso_elasticity = dynamic_cast<IsotropicElasticity*>(_elasticity_model);
+    if (iso_elasticity)
+      _three_shear_modulus = iso_elasticity->computeThreeShearModulus();
+    else
+      _three_shear_modulus = _elasticity_model->computeStress(_Nc[_qp]).doubleContraction(_Nc[_qp]);
   }
 
 
@@ -199,6 +206,24 @@ J2Creep::computeReferenceResidual(const ADReal & effective_trial_stress, const A
   ADReal residual = computeResidual(effective_trial_stress, delta_ec);
   return raw_value(residual);
 }
+
+// >>> MOD-BEGIN (2026-02-03): physical bounds for delta_ec to prevent negative effective_stress_np
+ADReal
+J2Creep::minimumPermissibleValue(const ADReal & /*effective_trial_stress*/) const
+{
+  return 0.0;
+}
+
+ADReal
+J2Creep::maximumPermissibleValue(const ADReal & effective_trial_stress) const
+{
+  if (raw_value(_three_shear_modulus) <= 0.0)
+    return std::numeric_limits<Real>::max();
+
+  const ADReal max_delta_ec = effective_trial_stress / _three_shear_modulus;
+  return max_delta_ec;
+}
+// <<< MOD-END
 
 // 蠕变率计算的默认实现（可以被子类覆盖）
 ADReal

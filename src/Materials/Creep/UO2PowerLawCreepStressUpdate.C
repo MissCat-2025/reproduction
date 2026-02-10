@@ -37,7 +37,8 @@ UO2PowerLawCreepStressUpdate::validParams()
   
   // 相场断裂相关参数
   params.addParam<MaterialPropertyName>("degradation_function", "g", "退化函数材料属性名");
-
+  params.addParam<bool>("use_new_three_shear_modulus", false, "是否使用新的三倍剪切模量计算方法");
+  
   return params;
 }
 
@@ -68,7 +69,8 @@ UO2PowerLawCreepStressUpdate::UO2PowerLawCreepStressUpdate(
     _density_term1(0.0),  // 将在computeStressInitialize中计算
     _density_term2(0.0),  // 将在computeStressInitialize中计算
     _fission_term(0.0),    // 将在computeStressInitialize中计算
-    _deviatoric_trial_stress(declareADProperty<RankTwoTensor>("deviatoric_trial_stress"))
+    _deviatoric_trial_stress(declareADProperty<RankTwoTensor>("deviatoric_trial_stress")),
+    _use_new_three_shear_modulus(getParam<bool>("use_new_three_shear_modulus"))
 {
 }
 
@@ -83,8 +85,8 @@ UO2PowerLawCreepStressUpdate::computeStressInitialize(
   
   // 使用氧化学计量比
   ADReal x = _oxygen_ratio[_qp];
-  if (MetaPhysicL::raw_value(x) <= 1.0)
-    x = 1.0 + 1e-12;
+  // if (MetaPhysicL::raw_value(x) <= 1.0)
+  //   x = 1.0 + 1e-12;
   const ADReal log_x = std::log10(x);
   const ADReal exp_common = std::exp(-20.0 / log_x - 8.0);
   const ADReal denom = 1.0 / (exp_common + 1.0);
@@ -108,11 +110,15 @@ UO2PowerLawCreepStressUpdate::computeStressInitialize(
   // 1) 先调用基类，原本会做： _three_shear_modulus = 3*μ
   ADRadialReturnCreepStressUpdateBase::computeStressInitialize(effective_trial_stress,
                                                                 elasticity_tensor);
+  
+  if (_use_new_three_shear_modulus)
+  {
     // 保存旧的 three_shear_modulus（即 3*μ）
-  ADReal old_three_shear = _three_shear_modulus;
-  // 计算并赋值新的 GL
-  ADReal GL = compute_three_shear_modulus_New(elasticity_tensor);
-  _three_shear_modulus = GL;
+    ADReal old_three_shear = _three_shear_modulus;
+    // 计算并赋值新的 GL
+    ADReal GL = compute_three_shear_modulus_New(elasticity_tensor);
+    _three_shear_modulus = GL;
+  }
 }
 
 

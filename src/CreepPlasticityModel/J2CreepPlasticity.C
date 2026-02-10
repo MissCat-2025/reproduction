@@ -260,6 +260,9 @@ J2CreepPlasticity::computeElasticModifier()
   }
   else
   {
+    IsotropicElasticity * iso_elasticity = dynamic_cast<IsotropicElasticity*>(_elasticity_model);
+    if (iso_elasticity)
+      return iso_elasticity->computeThreeShearModulus();
     return _elasticity_model->computeStress(_Nc[_qp]).doubleContraction(_Nc[_qp]);
   }
 }

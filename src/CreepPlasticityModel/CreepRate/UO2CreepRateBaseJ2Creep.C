@@ -112,8 +112,8 @@ UO2CreepRateBaseJ2Creep::setQp(unsigned int qp)
   _sigma_trans = 1.6547e7 * std::pow(_grain_size, 0.5714);
   
   // 预计算密度和晶粒尺寸相关项
-  _density_term1 = 1.0 / ((_density[_qp]/10980 - _a3) * _grain_size * _grain_size);
-  _density_term2 = 1.0 / (_density[_qp]/10980 - _a6);
+  _density_term1 = 1.0 / ((_density[_qp]/10980*100 - _a3) * _grain_size * _grain_size);
+  _density_term2 = 1.0 / (_density[_qp]/10980*100 - _a6);
   
   // 预计算裂变率项
   _fission_term = _a1 + _a2 * _fission_rate;
@@ -142,9 +142,7 @@ UO2CreepRateBaseJ2Creep::computeCreepRate(const ADReal & effective_stress, const
 ADReal
 UO2CreepRateBaseJ2Creep::computeSteadyStateCreepRate(const ADReal & effective_stress, const ADReal & effective_creep_strain)
 {
-  if (effective_stress <= 0.0)
-    return 0.0;
-
+  
   // 计算各分量蠕变率
   ADReal creep_th1 = 0.0;  // 热蠕变线性项
   ADReal creep_th2 = 0.0;  // 热蠕变幂律项
@@ -179,8 +177,10 @@ UO2CreepRateBaseJ2Creep::computeSteadyStateCreepRate(const ADReal & effective_st
   
   // 总稳态蠕变率
   const ADReal total_rate = creep_th1 + creep_th2 + creep_ir;
-  // if (raw_value(total_rate) < 0.0)
-  //   return 0.0;
+  // >>> MOD-BEGIN (2026-02-03): enforce non-negative creep rate
+  if (MetaPhysicL::raw_value(total_rate) < 0.0)
+    return 0.0;
+  // <<< MOD-END
   return total_rate;
 }
 

@@ -185,9 +185,12 @@ IsotropicElasticity::computeThreeShearModulus()
   // 计算3倍剪切模量：3G = 3 * E / (2 * (1 + nu))
   const ADReal nu = _poissons_ratio[_qp];
   const ADReal E = _youngs_modulus[_qp];
-  const ADReal three_G = 3.0 * E / (2.0 * (1.0 + nu));
+  const ADReal three_G_intact = 3.0 * E / (2.0 * (1.0 + nu));
+  // >>> MOD-BEGIN (2026-02-03): make 3G consistent with degraded stress (stress = g * stress_intact)
+  const ADReal three_G = _g[_qp] * three_G_intact;
+  // <<< MOD-END
   
-  return three_G;
+  return three_G_intact;
 }
 
 ADRankTwoTensor

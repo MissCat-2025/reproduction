@@ -1,12 +1,12 @@
 // src/materials/UO2CreepRateExplicit.C
 #include "UO2CreepRateExplicit.h"
 
-registerADMooseObject("reproductionApp", UO2CreepRateExplicit);
+registerMooseObject("reproductionApp", UO2CreepRateExplicit);
 
 InputParameters
 UO2CreepRateExplicit::validParams()
 {
-  InputParameters params = ADMaterial::validParams();
+  InputParameters params = Material::validParams();
   params.addRequiredCoupledVar("temperature", "Temperature in Kelvin");
   params.addRequiredCoupledVar("oxygen_ratio", "Oxygen hyper-stoichiometry");
   params.addRequiredParam<Real>("fission_rate", "Fission rate density (fissions/m^3-s)");
@@ -22,21 +22,21 @@ UO2CreepRateExplicit::validParams()
 }
 
 UO2CreepRateExplicit::UO2CreepRateExplicit(const InputParameters & parameters)
-  : ADMaterial(parameters),
-    _temperature(adCoupledValue("temperature")),
-    _oxygen_ratio(adCoupledValue("oxygen_ratio")),
+  : Material(parameters),
+    _temperature(coupledValue("temperature")),
+    _oxygen_ratio(coupledValue("oxygen_ratio")),
     _fission_rate(getParam<Real>("fission_rate")),
     _theoretical_density(getParam<Real>("theoretical_density")),
     _grain_size(getParam<Real>("grain_size")),
     _gas_constant(getParam<Real>("gas_constant")),
     _stress_old(getMaterialPropertyOld<RankTwoTensor>("stress")),
-    _stress_deviator(declareADProperty<RankTwoTensor>("stress_deviator")),
-    _vonMisesStress(adCoupledValue("vonMisesStress")),
-    _Q1(declareADProperty<Real>("Q1")),
-    _Q2(declareADProperty<Real>("Q2")),
+    _stress_deviator(declareProperty<RankTwoTensor>("stress_deviator")),
+    _vonMisesStress(coupledValue("vonMisesStress")),
+    _Q1(declareProperty<Real>("Q1")),
+    _Q2(declareProperty<Real>("Q2")),
     _Q3(21759.0),
-    _creep_rate(declareADProperty<RankTwoTensor>("creep_rate")),
-    _effective_creep(declareADProperty<Real>("effective_creep")),
+    _creep_rate(declareProperty<RankTwoTensor>("creep_rate")),
+    _effective_creep(declareProperty<Real>("effective_creep")),
     _consider_transient_creep(getParam<bool>("consider_transient_creep")),
     _max_stress_time(declareProperty<Real>("max_stress_time")),
     _max_stress_time_old(getMaterialPropertyOld<Real>("max_stress_time")),
@@ -59,27 +59,27 @@ void
 UO2CreepRateExplicit::computeQpProperties()
 {
   // 预计算常用值
-  const ADReal T = _temperature[_qp];
-  ADReal x = _oxygen_ratio[_qp];
-  if (MetaPhysicL::raw_value(x) <= 1.0)
+  const Real T = _temperature[_qp];
+  Real x = _oxygen_ratio[_qp];
+  if (x <= 1.0)
     x = 1.0 + 1e-12;
-  const ADReal RT = _gas_constant * T;
-  const ADReal inv_RT = 1.0 / RT;
+  const Real RT = _gas_constant * T;
+  const Real inv_RT = 1.0 / RT;
   
   // 计算偏应力张量
   _stress_deviator[_qp] = _stress_old[_qp].deviatoric();
   
   // 计算有效应力
-  const ADReal stress = _vonMisesStress[_qp];
+  const Real stress = _vonMisesStress[_qp];
   
   // 更新最大应力历史和时间（用于瞬态蠕变）
   if (_consider_transient_creep)
   {
-    const Real dt = _fe_problem.dt(); // 获取时间步长
+    const Real dt = _dt;
     
-    if (raw_value(stress) > _max_stress_old[_qp])
+    if (stress > _max_stress_old[_qp])
     {
-      _max_stress[_qp] = raw_value(stress);
+      _max_stress[_qp] = stress;
       _max_stress_time[_qp] = 0.0; // 重置时间
     }
     else
@@ -90,9 +90,9 @@ UO2CreepRateExplicit::computeQpProperties()
   }
   
   // 预计算氧化学计量比相关项
-  const ADReal log_x = std::log10(x); // 使用log10，与BISON文档一致
-  const ADReal exp_common = std::exp(-20.0 / log_x - 8.0);
-  const ADReal denom = 1.0 / (exp_common + 1.0);
+  const Real log_x = std::log10(x); // 使用log10，与BISON文档一致
+  const Real exp_common = std::exp(-20.0 / log_x - 8.0);
+  const Real denom = 1.0 / (exp_common + 1.0);
   
   // 计算激活能
   _Q1[_qp] = 74829.0 * denom + 301762.0;
@@ -106,16 +106,16 @@ UO2CreepRateExplicit::computeQpProperties()
   const Real fission_term = 0.3919 + 1.31e-19 * _fission_rate;
   
   // 预计算指数项
-  const ADReal exp_Q1 = std::exp(-_Q1[_qp] * inv_RT);
-  const ADReal exp_Q2 = std::exp(-_Q2[_qp] * inv_RT);
-  const ADReal exp_Q3 = std::exp(-_Q3 * inv_RT);
+  const Real exp_Q1 = std::exp(-_Q1[_qp] * inv_RT);
+  const Real exp_Q2 = std::exp(-_Q2[_qp] * inv_RT);
+  const Real exp_Q3 = std::exp(-_Q3 * inv_RT);
   
   // 计算转变应力
-  const ADReal sigma_trans = 1.6547e7 * std::pow(_grain_size, 0.5714);
+  const Real sigma_trans = 1.6547e7 * std::pow(_grain_size, 0.5714);
   
   // 计算各分量蠕变率
-  ADReal creep_th1 = 0.0;
-  ADReal creep_th2 = 0.0;
+  Real creep_th1 = 0.0;
+  Real creep_th2 = 0.0;
   
   // 根据是否使用转变应力来计算热蠕变
   if (_USE_transition_stress)
@@ -142,7 +142,7 @@ UO2CreepRateExplicit::computeQpProperties()
   }
   
   // 辐照蠕变 - 根据是否使用MATPRO-Halden模型
-  ADReal creep_ir;
+  Real creep_ir;
   if (_USE_MATPRO_Halden_model)
   {
     // 使用Halden关联式 - 不依赖温度
@@ -155,7 +155,7 @@ UO2CreepRateExplicit::computeQpProperties()
   }
   
   // 计算总标量蠕变率
-  ADReal scalar_rate = creep_th1 + creep_th2 + creep_ir;
+  Real scalar_rate = creep_th1 + creep_th2 + creep_ir;
   
   // 应用瞬态蠕变效应
   if (_consider_transient_creep)
@@ -169,7 +169,7 @@ UO2CreepRateExplicit::computeQpProperties()
   if (stress > 1e-10)
   {
     // 计算标准化的流动方向
-    ADRankTwoTensor flow_direction = 1.5 * _stress_deviator[_qp] / stress;
+    const RankTwoTensor flow_direction = _stress_deviator[_qp] * (1.5 / stress);
     
     // 使用流动方向和标量蠕变率
     _creep_rate[_qp] = scalar_rate * flow_direction;

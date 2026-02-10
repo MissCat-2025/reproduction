@@ -29,6 +29,11 @@ protected:
   virtual Real computeReferenceResidual(const ADReal & effective_trial_stress,
                                         const ADReal & delta_ec) override;
 
+  // >>> MOD-BEGIN (2026-02-03): enforce physical bounds for return-mapped scalar (delta_ec)
+  virtual ADReal minimumPermissibleValue(const ADReal & effective_trial_stress) const override;
+  virtual ADReal maximumPermissibleValue(const ADReal & effective_trial_stress) const override;
+  // <<< MOD-END
+
   /// 统一的应力计算函数（根据策略选择使用不同的方法）
   ADRankTwoTensor computeStressUnified(const ADRankTwoTensor & elastic_strain);
   
