@@ -67,9 +67,21 @@ if [ -z "$PARAVIEW_ENV_SET" ]; then
     export PARAVIEW_ENV_SET=1
 fi
 
-# 5. 运行处理脚本
+echo "--------------------------------------------"
+echo "PROJECT_BASE_DIR: ${PROJECT_BASE_DIR}"
+echo "STUDIES_SUBDIR:   ${STUDIES_SUBDIR}"
+echo "PV_FIELDS_SINGLE2:${PV_FIELDS_SINGLE2}"
+echo "PV_TIMESERIES_OUTPUT_DIR: ${PV_TIMESERIES_OUTPUT_DIR}"
+echo "PV_TIMESERIES_REDUCTION:  ${PV_TIMESERIES_REDUCTION}"
+echo "PV_PYTHON_SCRIPT: ${PV_PYTHON_SCRIPT}"
+echo "--------------------------------------------"
+
 echo "执行处理脚本..."
 cd "$SCRIPT_DIR"
-python "$SCRIPT_DIR/step4_paraview_processor.py"
+if [ -n "$PV_PYTHON_SCRIPT" ]; then
+    python "$PV_PYTHON_SCRIPT"
+else
+    python "$SCRIPT_DIR/step4_paraview_processor.py"
+fi
 
 echo "✅ 处理完成"

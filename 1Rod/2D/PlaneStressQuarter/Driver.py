@@ -16,9 +16,10 @@ import json
 
 RUN_STEP3 = True             # 收敛统计
 RUN_STEP4 = True             # ParaView 单例版
-# RUN_STEP4_SERIES = True      # ParaView series 版
 RUN_STEP5 = True             # 时间 + 图片整理
 
+
+# RUN_STEP4_SERIES = True      # ParaView series 版
 # =========================== Step1 ============================
 
 
@@ -26,9 +27,11 @@ RUN_STEP5 = True             # 时间 + 图片整理
 template_main_name = "Main.i"
 template_sub_name = "Sub.i"
 STEP1_PARAM_MATRIX = {
-    # "pellet_critical_energy": [3],
-    # "PressureFactor": [1e6, 2e6, 3e6, 4e6, 5e6],
-    "degradation_factor": [1e-9,1e-8,1e-7,1e-6,1e-5],
+    # "pellet_critical_energy": [3.5,4,5],
+    # "PressureFactor": [0,1e6, 2e6, 3e6, 4e6, 5e6, 6e6],
+    # "degradation_factor": [1e-9,1e-8,1e-7,1e-6,1e-5],
+    "fission_rate": [0.6e19,1.2e19,2.4e19,3.6e19],
+    # "pellet_nu": [0.316,0.333,0.345]
 }
 
 # Step1 series 参数矩阵
@@ -50,7 +53,7 @@ STEP1_CHECKPOINT_CONFIG = '''
 # =========================== Step2 ============================
 
 
-MPI_PROCESSES = 15
+MPI_PROCESSES = 12
 
 
 # =========================== Step3 ============================
@@ -74,7 +77,7 @@ PV_IMAGE_SIZE = "1642,1083"
 # Step5 时间/图片整理目标子目录（相对于工程目录），为空则默认用 parameter_studies_series
 STEP5_STUDIES_SUBDIR = PV_SINGLE_STUDIES_SUBDIR
 # ParaView / 拼图使用的目标时间（秒）
-TARGET_TIMES = [100000, 125000, 175000, 300000]
+TARGET_TIMES = [100000,125000,175000,350000]
 # 时间拼图字体和布局参数
 TIME_TITLE_FONT_SIZE = 72
 TIME_LABEL_FONT_SIZE = 28

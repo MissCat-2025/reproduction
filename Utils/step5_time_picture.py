@@ -16,6 +16,7 @@ from datetime import datetime
 
 BASE_DIR = os.environ.get("PROJECT_BASE_DIR", os.path.dirname(os.path.abspath(__file__)))
 TARGET_STUDIES_DIR = os.environ.get("TARGET_STUDIES_DIR", os.path.join(BASE_DIR, "2Good-Gc2.25-3.5"))
+OUTPUT_DIR_NAME = os.environ.get("PV_OUTPUT_DIR", "post_results")
 
 
 
@@ -115,14 +116,27 @@ def build_row_image_for_case(global_times, time_to_path, base_size):
     row_width = w * len(global_times)
     row_image = Image.new("RGB", (row_width, h), (255, 255, 255))
     x_offset = 0
+    row_times = []
+    if not time_to_path:
+        for _ in global_times:
+            row_times.append(None)
+        return row_image, row_times
+    available_times = sorted(time_to_path.keys())
     for t in global_times:
-        path = time_to_path.get(t)
+        if available_times:
+            closest = min(available_times, key=lambda x: abs(x - t))
+            path = time_to_path.get(closest)
+            row_times.append(closest)
+        else:
+            path = None
+            row_times.append(None)
         if path is not None:
             img = Image.open(path).convert("RGB")
             row_image.paste(img, (x_offset, 0))
             img.close()
         x_offset += w
-    return row_image
+    return row_image, row_times
+
 def create_labeled_grid(row_entries, project_name, label_width=LABEL_WIDTH, title_height=TITLE_HEIGHT, time_label_height=TIME_LABEL_HEIGHT, row_time_label_height=ROW_TIME_LABEL_HEIGHT, time_centers=None, time_labels=None):
     try:
         from PIL import Image, ImageDraw, ImageFont
@@ -138,11 +152,11 @@ def create_labeled_grid(row_entries, project_name, label_width=LABEL_WIDTH, titl
     font_title = build_font(TITLE_FONT_SIZE)
     font_label = build_font(LABEL_FONT_SIZE)
     font_time = build_font(TIME_FONT_SIZE)
-    max_row_width = max(img.width for _, img in row_entries)
+    max_row_width = max(img.width for _, img, _ in row_entries)
     if time_centers and time_labels:
-        total_rows_height = sum(img.height + row_time_label_height for _, img in row_entries)
+        total_rows_height = sum(img.height + row_time_label_height for _, img, _ in row_entries)
     else:
-        total_rows_height = sum(img.height for _, img in row_entries)
+        total_rows_height = sum(img.height for _, img, _ in row_entries)
     width = label_width + max_row_width
     extra_time_band = time_label_height if time_centers and time_labels else 0
     height = title_height + extra_time_band + total_rows_height
@@ -170,7 +184,7 @@ def create_labeled_grid(row_entries, project_name, label_width=LABEL_WIDTH, titl
             text_y = time_y_center - size[1] // 2
             draw.text((text_x, text_y), text, fill=(0, 0, 0), font=font_time)
         y_offset += time_label_height
-    for case_name, row_image in row_entries:
+    for case_name, row_image, row_times in row_entries:
         grid.paste(row_image, (label_width, y_offset))
         case_text = case_name
         case_size = measure(case_text, font_label)
@@ -179,10 +193,10 @@ def create_labeled_grid(row_entries, project_name, label_width=LABEL_WIDTH, titl
         draw.text((text_x, text_y), case_text, fill=(0, 0, 0), font=font_label)
         if time_centers and time_labels:
             row_time_y_center = y_offset + row_image.height + row_time_label_height // 2
-            for x, label in zip(time_centers, time_labels):
-                if label is None or label == "":
+            for x, t in zip(time_centers, row_times):
+                if t is None:
                     continue
-                text = label
+                text = f"{t:.0f}"
                 size = measure(text, font_time)
                 text_x = label_width + x - size[0] // 2
                 text_y = row_time_y_center - size[1] // 2
@@ -206,13 +220,16 @@ def build_case_time_grid(studies_dir, output_prefix="combined"):
         return []
     project_names = set()
     for case_dir in case_dirs:
-        post_dir = os.path.join(case_dir, 'post_results')
-        if not os.path.isdir(post_dir):
-            continue
-        for name in os.listdir(post_dir):
-            path = os.path.join(post_dir, name)
-            if os.path.isdir(path):
-                project_names.add(name)
+        post_dirs = []
+        for root, dirs, _ in os.walk(case_dir):
+            for d in dirs:
+                if d == OUTPUT_DIR_NAME:
+                    post_dirs.append(os.path.join(root, d))
+        for post_dir in post_dirs:
+            for name in os.listdir(post_dir):
+                path = os.path.join(post_dir, name)
+                if os.path.isdir(path):
+                    project_names.add(name)
     project_names = sorted(project_names)
     if not project_names:
         print("未找到post_results子目录")
@@ -222,23 +239,30 @@ def build_case_time_grid(studies_dir, output_prefix="combined"):
         per_case_time_paths = {}
         global_times_set = set()
         for case_dir in case_dirs:
-            project_dir = os.path.join(case_dir, "post_results", project)
-            if not os.path.isdir(project_dir):
-                continue
-            image_paths = [
-                os.path.join(project_dir, name)
-                for name in os.listdir(project_dir)
-                if name.lower().endswith(".png")
-            ]
-            if not image_paths:
+            post_dirs = []
+            for root, dirs, _ in os.walk(case_dir):
+                for d in dirs:
+                    if d == OUTPUT_DIR_NAME:
+                        post_dirs.append(os.path.join(root, d))
+            if not post_dirs:
                 continue
             time_to_path = {}
-            for path in image_paths:
-                t = parse_image_time_from_name(os.path.basename(path))
-                if t is None:
+            for post_dir in post_dirs:
+                project_dir = os.path.join(post_dir, project)
+                if not os.path.isdir(project_dir):
                     continue
-                time_to_path[t] = path
-                global_times_set.add(t)
+                image_paths = [
+                    os.path.join(project_dir, name)
+                    for name in os.listdir(project_dir)
+                    if name.lower().endswith(".png")
+                ]
+                for path in image_paths:
+                    t = parse_image_time_from_name(os.path.basename(path))
+                    if t is None:
+                        continue
+                    if t not in time_to_path:
+                        time_to_path[t] = path
+                    global_times_set.add(t)
             if not time_to_path:
                 continue
             case_name = os.path.basename(case_dir)
@@ -247,16 +271,7 @@ def build_case_time_grid(studies_dir, output_prefix="combined"):
             continue
         available_times = sorted(global_times_set)
         if target_times:
-            selected = []
-            used = set()
-            for t in target_times:
-                if not available_times:
-                    break
-                closest = min(available_times, key=lambda x: abs(x - t))
-                if closest not in used:
-                    used.add(closest)
-                    selected.append(closest)
-            global_times = selected
+            global_times = list(target_times)
         else:
             global_times = available_times
         if not global_times:
@@ -280,8 +295,8 @@ def build_case_time_grid(studies_dir, output_prefix="combined"):
             time_to_path = per_case_time_paths.get(case_name)
             if not time_to_path:
                 continue
-            row_image = build_row_image_for_case(global_times, time_to_path, base_size)
-            row_entries.append((case_name, row_image))
+            row_image, row_times = build_row_image_for_case(global_times, time_to_path, base_size)
+            row_entries.append((case_name, row_image, row_times))
         if not row_entries:
             continue
         col_width = base_size[0]
@@ -289,7 +304,7 @@ def build_case_time_grid(studies_dir, output_prefix="combined"):
         time_labels = [f"{t:.0f}" for t in global_times]
         grid_image = create_labeled_grid(row_entries, project, time_centers=time_centers, time_labels=time_labels)
         if not grid_image:
-            for _, img in row_entries:
+            for _, img, _ in row_entries:
                 try:
                     img.close()
                 except Exception:
@@ -299,7 +314,7 @@ def build_case_time_grid(studies_dir, output_prefix="combined"):
         output_path = os.path.join(studies_dir, output_name)
         grid_image.save(output_path)
         outputs.append(output_path)
-        for _, img in row_entries:
+        for _, img, _ in row_entries:
             try:
                 img.close()
             except Exception:

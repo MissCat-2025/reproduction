@@ -67,6 +67,14 @@ if [ -z "$PARAVIEW_ENV_SET" ]; then
     export PARAVIEW_ENV_SET=1
 fi
 
+echo "--------------------------------------------"
+echo "PROJECT_BASE_DIR: ${PROJECT_BASE_DIR}"
+echo "STUDIES_SUBDIR:   ${STUDIES_SUBDIR}"
+echo "PV_SERIES_FIELDS: ${PV_SERIES_FIELDS}"
+echo "PV_OUTPUT_DIR_SERIES: ${PV_OUTPUT_DIR_SERIES}"
+echo "PV_IMAGE_SIZE:    ${PV_IMAGE_SIZE}"
+echo "--------------------------------------------"
+
 # 5. 运行处理脚本
 echo "执行处理脚本..."
 cd "$SCRIPT_DIR"

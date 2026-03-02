@@ -164,7 +164,7 @@ n_elems_radial_pellet = '${fparse int(pellet_outer_radius/(4*mesh_size))}'      
     abort_on_solve_fail = true
     dtmin = 150
     dt = 10000 # 时间步长3600s
-    end_time =  125000# 总时间24h3.7e5
+    end_time =  3.50e+5# 总时间24h3.7e5
   
     fixed_point_rel_tol =1e-7 # 固定点迭代的相对容差
     [TimeStepper]

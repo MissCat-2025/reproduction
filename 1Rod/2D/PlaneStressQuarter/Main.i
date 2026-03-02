@@ -10,15 +10,15 @@ pellet_E=201.3e9
 pellet_density=10431.0#10431.0*0.85#kg⋅m-3
 pellet_nu = 0.345
 pellet_thermal_expansion_coef=1e-5#K-1
-pellet_critical_energy = 3.25 #断裂能
+pellet_critical_energy = 5 #断裂能
 grain_size = 10.0
 pellet_critical_fracture_strength=6.0e7#Pa
-length_scale_paramete = 4e-5
-mesh_size = '${fparse 3.5e-5}' #mm,最大网格尺寸
+length_scale_paramete = 6e-5
+mesh_size = '${fparse 3e-5}' #mm,最大网格尺寸
 # length_scale_paramete = '${fparse 1.2*mesh_size}'
-fission_rate = 1.2e19
+fission_rate = 2.0e19
 power_factor_mod = 1.0
-PressureFactor = 2e6 # 间隙压力2.5MPa
+PressureFactor = 2.5e6 # 间隙压力2.5MPa
 # 各种参数都取自[1]Multiphysics phase-field modeling of quasi-static cracking in urania ceramic nuclear fuel
 #几何与网格参数
 pellet_outer_radius = 4.1e-3#直径变半径，并且单位变mm
@@ -26,7 +26,7 @@ pellet_outer_radius = 4.1e-3#直径变半径，并且单位变mm
 n_elems_azimuthal = '${fparse 2*ceil(3.1415*2*(pellet_outer_radius/(4*mesh_size)/2))}'  # 周向网格数（向上取整）
 n_elems_radial_pellet = '${fparse int(pellet_outer_radius/(4*mesh_size))}'          # 芯块径向网格数（直接取整）
 #相场断裂参数：
-degradation_factor = 1e-7
+degradation_factor = 1e-6
 # 双曲
 m = 4
 a2 = 0.5396842
@@ -491,7 +491,7 @@ power_factor = '${fparse 1000*1/3.1415926/pellet_outer_radius/pellet_outer_radiu
   l_max_its = 150 # 线性求解的最大迭代次数
   accept_on_max_fixed_point_iteration = true # 达到最大迭代次数时接受解
   dtmin = 100
-  end_time =  125000# 总时间24h3.7e5
+  end_time =  3.50e+5# 总时间24h3.7e5
 
   # fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
   [TimeStepper]
