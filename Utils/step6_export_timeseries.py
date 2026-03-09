@@ -1,3 +1,10 @@
+"""
+Step6：导出 Exodus 全时间域标量到 CSV。
+- 优先依据 file_base 定位 .e
+- 支持 FieldData 标量与场量的 mean/min/max 归约
+- 生成跨案例汇总 CSV
+"""
+
 import csv
 import glob
 import os
@@ -201,6 +208,7 @@ def export_exodus_timeseries(
     from paraview.simple import OpenDataFile, UpdatePipeline
     from paraview import servermanager
 
+    # 读取 Exodus 并遍历时间步
     reader = OpenDataFile(exodus_path)
     if reader is None:
         raise RuntimeError(f"cannot open: {exodus_path}")
@@ -217,6 +225,7 @@ def export_exodus_timeseries(
     os.makedirs(os.path.dirname(os.path.abspath(output_csv_path)) or ".", exist_ok=True)
 
     series = {name: [] for name in fields}
+    # 写出时间序列 CSV
     with open(output_csv_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["time", *fields])
@@ -237,6 +246,7 @@ def export_exodus_timeseries(
 
 
 def _pick_primary_exodus(case_dir: str, output_dir_name: str):
+    # 优先使用输入文件里的 file_base 定位输出 .e
     input_path = _find_first_input(case_dir)
     file_base = _parse_file_base(input_path)
     if file_base:
@@ -291,6 +301,7 @@ def _merge_by_row_index(case_series):
 
 
 def main():
+    # 主流程：导出每个 case 的 CSV，并生成汇总 CSV
     project_base_dir = os.environ.get("PROJECT_BASE_DIR", "")
     studies_subdir = os.environ.get("STUDIES_SUBDIR", "parameter_studies")
     fields = _parse_fields(os.environ.get("PV_FIELDS_SINGLE2", ""))

@@ -1,3 +1,8 @@
+"""
+Step3：解析 run.log，生成收敛统计 CSV 报告。
+支持从模板注释中还原参数完整名称。
+"""
+
 import re
 import os
 import csv
@@ -47,6 +52,7 @@ def get_param_names_from_template(studies_dir):
     return {}
 
 def analyze_logs():
+    # 主流程：扫描 case_*，提取参数与日志状态
     script_dir = os.environ.get("PROJECT_BASE_DIR", os.path.dirname(os.path.abspath(__file__)))
     studies_subdir = os.environ.get("STUDIES_SUBDIR", "parameter_studies")
     studies_dir = os.path.join(script_dir, studies_subdir)

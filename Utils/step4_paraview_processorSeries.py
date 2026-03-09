@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-增强版ParaView结果处理脚本
+Step4(series)：ParaView 多目标时间后处理脚本。
+- 扫描 case_*，优先依据 file_base 定位 .e 文件
+- 逐字段导出目标时间截图
+- 输出目录固定在 case 根目录下的 post_results
 """
 
 import os
@@ -99,6 +102,7 @@ def _find_exodus_by_file_base(case_dir, file_base):
     return max(matches, key=os.path.getmtime)
 
 def _find_case_exodus(case_dir, output_dir_name):
+    # 优先使用输入文件中的 file_base 进行精确定位
     input_path = _find_first_input(case_dir)
     file_base = _parse_file_base(input_path)
     exodus_path = _find_exodus_by_file_base(case_dir, file_base)
@@ -156,7 +160,7 @@ def export_field_data(file_path, config=DEFAULT_CONFIG, case_dir=None):
             print("无法读取文件")
             return False
 
-        # 2. 获取时间步
+        # 2. 获取时间步列表
         time_steps = []
         if hasattr(reader, 'TimestepValues'):
             time_steps = [float(t) for t in reader.TimestepValues]
@@ -167,7 +171,7 @@ def export_field_data(file_path, config=DEFAULT_CONFIG, case_dir=None):
             print("警告: 未找到时间步信息")
             return False
 
-        # 3. 创建输出目录
+        # 3. 创建输出目录（固定在 case 根目录）
         base_name = os.path.splitext(os.path.basename(file_path))[0]
         if case_dir:
             output_root = os.path.join(case_dir, config.output_dir_name)
@@ -182,7 +186,7 @@ def export_field_data(file_path, config=DEFAULT_CONFIG, case_dir=None):
             os.makedirs(dir_path, exist_ok=True)
             field_dirs[field] = dir_path
 
-        # 4. 设置视图参数
+        # 4. 设置视图参数（背景、相机、布局）
         renderView1 = GetActiveViewOrCreate('RenderView')
         layout1 = GetLayout()
         layout1.SetSize(*config.image_size)
@@ -201,7 +205,7 @@ def export_field_data(file_path, config=DEFAULT_CONFIG, case_dir=None):
         for target_time in config.target_times:
             closest_times_by_target[target_time] = min(time_steps, key=lambda x: abs(x - target_time))
 
-        # 5. 处理每个字段
+        # 5. 处理每个字段：设置颜色条并输出截图
         for field, display_name in config.field_list:
             print(f"\n正在处理字段: {display_name} ({field})")
 
@@ -284,7 +288,7 @@ def export_field_data(file_path, config=DEFAULT_CONFIG, case_dir=None):
                 lut.ApplyPreset('Blue to Red Rainbow', True)
                 lut.NumberOfTableValues = 20  # 将颜色表的值数量减少到20
                 
-                # 显示颜色条
+                # 显示颜色条与字体样式
                 display.SetScalarBarVisibility(renderView1, True)
                 scalar_bar = paraview.simple.GetScalarBar(lut, renderView1)
                 scalar_bar.Orientation = 'Horizontal'
@@ -311,7 +315,7 @@ def export_field_data(file_path, config=DEFAULT_CONFIG, case_dir=None):
                 print(f"  字段设置失败: {str(e)}")
                 continue
 
-            # 6. 处理每个时间点
+            # 6. 处理每个时间点并写图像
             expected_outputs = []
             for target_time, closest_time in closest_times_by_target.items():
                 time_str = f"{closest_time:.2f}s".replace('.', 'p')

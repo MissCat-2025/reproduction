@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+导出 Exodus 中的 pellet_total_strain_energy 时间序列。
+输出格式：每行 "time value"（空格分隔）。
+"""
 
 import os
 import sys
 
 
 def _iter_vtk_blocks(obj):
+    # 遍历 MultiBlock 结构，兼容嵌套块
     try:
         import vtk
     except Exception:
@@ -25,6 +30,7 @@ def _iter_vtk_blocks(obj):
 
 
 def _get_field_data_scalar(obj, array_name: str):
+    # 从 FieldData 读取标量（Postprocessor 写入通常在 FieldData）
     if obj is None:
         return None
 
@@ -43,6 +49,7 @@ def _get_field_data_scalar(obj, array_name: str):
 
 
 def export_pellet_total_strain_energy_from_exodus(exodus_path: str, output_path: str):
+    # 通过 ParaView 读取 Exodus 并逐时间步取值
     from paraview.simple import OpenDataFile, UpdatePipeline
     from paraview import servermanager
 
@@ -61,6 +68,7 @@ def export_pellet_total_strain_energy_from_exodus(exodus_path: str, output_path:
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)) or ".", exist_ok=True)
 
+    # 逐时间步写出
     with open(output_path, "w", encoding="utf-8") as f:
         for t in time_steps:
             UpdatePipeline(time=t, proxy=reader)
@@ -83,11 +91,13 @@ def export_pellet_total_strain_energy_from_exodus(exodus_path: str, output_path:
 
 
 def _default_output_path(exodus_path: str):
+    # 默认输出文件名与输入 .e 同目录
     base = os.path.splitext(os.path.basename(exodus_path))[0]
     return os.path.join(os.path.dirname(os.path.abspath(exodus_path)), f"{base}_pellet_total_strain_energy.txt")
 
 
 def main(argv=None):
+    # CLI 入口：支持可选输出文件名
     argv = argv if argv is not None else sys.argv[1:]
     if not argv:
         raise SystemExit(
@@ -102,4 +112,3 @@ def main(argv=None):
 
 if __name__ == "__main__":
     main()
-

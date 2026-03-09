@@ -19,7 +19,7 @@ endTime__50000 = '${fparse endTime-5000}'
 endTime__100000 = '${fparse endTime-10000}'
 #conda activate moose && mpirun -n 11 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i --recover 2.1-2D-New2026/1_cp/0100
   
-# conda activate moose &&mpirun -n 9 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i --recover
+# conda activate moose &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i
 initial_T = 550
 pellet_E=201.3e9
 pellet_nu = 0.345   #RELAP5
@@ -90,8 +90,8 @@ ksi = 2
     cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};Gc=${pellet_critical_energy};sigma0=${pellet_critical_fracture_strength};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};endTime=${endTime};dtmin=${dtmin};dt=${dt};pellet_outer_radius=${pellet_outer_radius};dtMax=${dtMax}'
     execute_on = 'TIMESTEP_END'
     # catch_up=true
-    sub_cycling = true          # 禁止子循环
-    max_failures = 200             # 严格同步模式
+    sub_cycling = false          # 禁止子循环
+    max_failures = 0             # 严格同步模式
   []
 []
 

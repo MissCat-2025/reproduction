@@ -77,6 +77,7 @@ echo "PV_PYTHON_SCRIPT: ${PV_PYTHON_SCRIPT}"
 echo "--------------------------------------------"
 
 echo "执行处理脚本..."
+# 默认运行 step4_paraview_processor.py，可用 PV_PYTHON_SCRIPT 指定自定义脚本
 cd "$SCRIPT_DIR"
 if [ -n "$PV_PYTHON_SCRIPT" ]; then
     python "$PV_PYTHON_SCRIPT"

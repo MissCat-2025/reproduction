@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MOOSE运行时间分析脚本
-从所有案例的run.log文件中提取时间信息，汇总到CSV文件
+Step5：时间与图片整理脚本。
+- 解析 run.log 生成运行时间统计
+- 在 post_results 中搜索截图并生成组合图
 """
 
 import os
@@ -206,6 +207,7 @@ def create_labeled_grid(row_entries, project_name, label_width=LABEL_WIDTH, titl
     return grid
 
 def build_case_time_grid(studies_dir, output_prefix="combined"):
+    # 汇总每个 case 的目标时间截图，生成拼图
     if not os.path.isdir(studies_dir):
         print(f"错误：目录不存在 {studies_dir}")
         return []

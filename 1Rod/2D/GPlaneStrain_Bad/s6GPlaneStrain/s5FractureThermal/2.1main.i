@@ -13,12 +13,12 @@ initial_T = 550
 pellet_E=201.3e9
 pellet_nu = 0.345   #RELAP5
 pellet_thermal_expansion_coef=1e-5#K-1
-pellet_critical_fracture_strength=6.0e7#Pa
+pellet_critical_fracture_strength=10.0e7#Pa
 density_percent = 0.95
 # Gc = 6#断裂能
 # fission_rate = 1.2e19
 # grain_size =10
-pellet_critical_energy = 5# 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
+pellet_critical_energy = 10# 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
 pellet_density='${fparse density_percent*10980}'#10431.0*0.85#kg⋅m-3理论密度为10.980
 #几何与网格参数
 # density_percent100 = '${fparse density_percent*100}'
@@ -477,7 +477,7 @@ ksi = 2
     material_property_names = 'a1'
     expression = (1-d)^p/((1-d)^p+a1*d*(1+a2*d+a3*d^2))*(1-eta)+eta
     constant_names = 'p a2 a3 eta'
-    constant_expressions = '${m} ${a2} ${a3} 1e-3'
+    constant_expressions = '${m} ${a2} ${a3} 1e-6'
     derivative_order = 1
 
   []
@@ -602,8 +602,8 @@ ksi = 2
   automatic_scaling = true # 启用自动缩放功能，有助于改善病态问题的收敛性
   compute_scaling_once = true
   nl_max_its = 200
-  nl_rel_tol = 1e-5
-  nl_abs_tol = 1e-6
+  nl_rel_tol = 1e-3
+  nl_abs_tol = 1e-4
   dtmin = ${dtmin}
   dt = ${dt}
   end_time = ${endTime}

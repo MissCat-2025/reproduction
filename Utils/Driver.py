@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Utils 总控入口：
+- 统一配置参数研究生成、运行、后处理与汇总。
+- 通过 RUN_STEPx 组合实现一键流水线或单独步骤执行。
+- 依赖的公共环境变量在 main() 中集中注入。
+"""
 
 import os
 import sys
@@ -118,6 +124,7 @@ def _step_enabled(name: str, default: bool = False) -> bool:
 
 
 def run_step(title, cmd, cwd, env):
+    # 统一的步骤执行与失败退出逻辑
     print("\n" + "=" * 60)
     print(title)
     print("=" * 60)

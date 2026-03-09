@@ -77,6 +77,7 @@ echo "--------------------------------------------"
 
 # 5. 运行处理脚本
 echo "执行处理脚本..."
+# 固定调用 step4_paraview_processorSeries.py 处理多目标时间截图
 cd "$SCRIPT_DIR"
 python "$SCRIPT_DIR/step4_paraview_processorSeries.py"
 

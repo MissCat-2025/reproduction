@@ -28,11 +28,13 @@ RUN_STEP6 = True             # 全时间域标量导出
 template_main_name = "Main.i"
 template_sub_name = "Sub.i"
 STEP1_PARAM_MATRIX = {
-    "pellet_critical_energy": [3,4,5],
+    # "pellet_critical_energy": [3,4,5],
+    "pellet_critical_fracture_strength": [80e6,1E8],
+    "WeibullShape": [50,30,10,9.1],
     # "PressureFactor": [0,1e6, 2e6, 3e6, 4e6, 5e6, 6e6],
     # "degradation_factor": [1e-9,1e-8,1e-7,1e-6,1e-5],
-    "PowerTime": [30,60,120,480],
-    "WeibullSeed": [1,2,3,4]
+    # "PowerTime": [30,60,120,480],
+    # "WeibullSeed": [1,2,3,4]
 }
 
 # Step1 series 参数矩阵
@@ -70,7 +72,7 @@ STEP3_STUDIES_SUBDIR = "parameter_studies"
 PV_SINGLE_STUDIES_SUBDIR = "parameter_studies"  #要分析的路径 例如 "post_results"
 
 # PV_FIELDS_SINGLE = "d:相场变量,hoop_stress:环向应力,radial_stress:径向应力"
-PV_FIELDS_SINGLE = "d:相场变量,strain_energy_density:应变能量密度,grad_T_mag:温度梯度范数"
+PV_FIELDS_SINGLE = "d:相场变量,sigma0_field:断裂强度,effective_creep_strain:有效蠕变应变"
 
 # PV_FIELDS_SERIES = "d:相场变量,hoop_stress:环向应力,sigma0:断裂强度"
 PV_IMAGE_SIZE = "1083,1083"
@@ -81,7 +83,7 @@ PV_IMAGE_SIZE = "1083,1083"
 # Step5 时间/图片整理目标子目录（相对于工程目录），为空则默认用 parameter_studies_series
 STEP5_STUDIES_SUBDIR = PV_SINGLE_STUDIES_SUBDIR
 # ParaView / 拼图使用的目标时间（秒）
-TARGET_TIMES = [605,610,630,660,720,1080,2520]
+TARGET_TIMES = [610,630,660,720]
 # 时间拼图字体和布局参数
 TIME_TITLE_FONT_SIZE = 72
 TIME_LABEL_FONT_SIZE = 28

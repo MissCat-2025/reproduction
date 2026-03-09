@@ -1,3 +1,8 @@
+"""
+Step1：根据参数矩阵生成 parameter_studies 案例目录。
+支持 MultiApp/SingleApp，并可自动插入 Checkpoint 配置。
+"""
+
 import os
 import re
 import shutil
@@ -9,10 +14,12 @@ from datetime import datetime
 # base_dir = '/home/yp/projects/raccoon/FuelFracture/RodFuel/Liwei2021/MaterialParametersVerification/step4.3_ThermalCreepFractureReturnMapQuarter'
 
 # 修改为使用脚本所在路径，或外部指定的工程目录
+# 工程根目录：支持环境变量覆盖
 base_dir = os.environ.get("PROJECT_BASE_DIR", os.path.dirname(os.path.abspath(__file__)))
 # 主程序模板文件与子程序模板文件相同，则是单程序模式
 template_main = os.path.join(base_dir, 'Main.i')
 template_sub = os.path.join(base_dir, 'Sub.i')
+# 输出目录：每个 case_* 一个子目录
 output_dir = os.path.join(base_dir, 'parameter_studies')
 
 _default_checkpoint_config = '''
@@ -161,6 +168,7 @@ def rename_and_cleanup_files(case_dir, case_name, is_multiapp):
             os.remove(sub_file)
 
 def generate_study_cases():
+    # 入口：生成全部案例目录与输入文件
     # 校验主程序模板文件
     if not os.path.exists(template_main):
         raise FileNotFoundError("主程序模板文件不存在，请检查路径配置")

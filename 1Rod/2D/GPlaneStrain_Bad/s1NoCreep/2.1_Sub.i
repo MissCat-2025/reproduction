@@ -19,12 +19,13 @@
 # end_time = 8.30e+6
 # length_scale_paramete: 4.50e-5
 # 生成时间: 2025-08-14 12:09:07
+endTime = ${endTime}
+endTime__50000 = '${fparse endTime-5000}'
+endTime__100000 = '${fparse endTime-10000}'
 [Problem]
   kernel_coverage_check = false
   material_coverage_check = false
 []
-
-
 
 pellet_outer_radius = '${pellet_outer_radius}'         # 芯块外直径mm
 mesh_size = '${mesh_size}' #网格尺寸即可
@@ -38,6 +39,7 @@ a2 = ${a2}
 a3 = ${a3}
 
 
+
 [Mesh]
   [pellet_clad_gap]
     type = ConcentricCircleMeshGenerator
@@ -46,14 +48,14 @@ a3 = ${a3}
     rings = '${n_elems_radial_pellet}'
     has_outer_square = false
     preserve_volumes = true
-    portion = full # 生成四分之一计算域
+    portion = top_right # 生成四分之一计算域
     smoothing_max_it=300 # 平滑迭代次数
   []
   [rename]
     type = RenameBoundaryGenerator
     input = pellet_clad_gap
-    old_boundary = 'outer'
-    new_boundary = 'pellet_outer' # 将边界命名为yplane xplane clad_outer
+    old_boundary = 'bottom left outer'
+    new_boundary = 'yplane xplane pellet_outer' # 将边界命名为yplane xplane clad_outer
 
   []
   [rename2]
@@ -61,12 +63,6 @@ a3 = ${a3}
     input = rename
     old_block  = '1'
     new_block  = 'pellet' # 将block1和block3分别命名为pellet和clad
-  []
-    [center_point]
-    type = ExtraNodesetGenerator
-    input = rename2
-    coord = '0 0 0'
-    new_boundary  = 'center_point'
   []
 []
 
@@ -158,7 +154,7 @@ a3 = ${a3}
     phase_field = d
     material_property_names = 'a1'
     parameter_names = 'p a2 a3 eta'
-    parameter_values = '${m} ${a2} ${a3} 1e-6'
+    parameter_values = '${m} ${a2} ${a3} 1e-3'
   []
   [psi]
     type = ADDerivativeParsedMaterial
@@ -174,34 +170,37 @@ a3 = ${a3}
 
 [Executioner]
   type = Transient # 瞬态求解器
-  solve_type = 'PJFNK' #求解器，PJFNK是预处理雅可比自由牛顿-克雷洛夫方法
+  # solve_type = 'PJFNK' #求解器，PJFNK是预处理雅可比自由牛顿-克雷洛夫方法
   # petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type'
   # petsc_options_value = '201                hypre    boomeramg'  
   # solve_type = 'NEWTON'
-  # solve_type = 'PJFNK'
+  solve_type = 'PJFNK'
   # petsc_options_iname = '-pc_type -ksp_type  -snes_type'
   # petsc_options_value = 'lu gmres  vinewtonrsls'  
   petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type  -snes_type'
   petsc_options_value = '201                hypre    boomeramg  vinewtonrsls'  
   # petsc_options_iname = '-pc_type -ksp_type' 
   # petsc_options_value = 'lu gmres' 
-  # automatic_scaling = true # 启用自动缩放功能，有助于改善病态问题的收敛性
-  # compute_scaling_once = true  # 每个时间步都重新计算缩放
+  # petsc_options = '-snes_converged_reason -ksp_converged_reason -snes_monitor -ksp_monitor_true_residual'
+  line_search = 'bt'
+  automatic_scaling = true # 启用自动缩放功能，有助于改善病态问题的收敛性
+  compute_scaling_once = true
   # reuse_preconditioner = true
   # reuse_preconditioner_max_linear_its = 20
   nl_max_its = 200
-  nl_rel_tol = 5e-9 # 非线性求解的相对容差
-  nl_abs_tol = 5e-10 # 非线性求解的绝对容差
-  l_tol = 5e-9  # 线性求解的容差
-  l_abs_tol = 5e-10 # 线性求解的绝对容差
+  nl_rel_tol = 1e-6 # 非线性求解的相对容差
+  nl_abs_tol = 1e-6 # 非线性求解的绝对容差
+  l_tol = 1e-8  # 线性求解的容差
+  l_abs_tol = 1e-6 # 线性求解的绝对容差
   l_max_its = 100 # 线性求解的最大迭代次数
-  abort_on_solve_fail = true
+  # abort_on_solve_fail = true
   dtmin = ${dtmin}
-  end_time = ${endTime}
+  dtmax = ${dtMax}
+  end_time = ${endTime} # 总时间24h
 
-  fixed_point_rel_tol =1e-8 # 固定点迭代的相对容差
-  fixed_point_abs_tol = 1e-10 # 固定点迭代的绝对容差
-  accept_on_max_fixed_point_iteration = true
+  fixed_point_rel_tol =1e-5 # 固定点迭代的相对容差
+  fixed_point_abs_tol = 1e-6 # 固定点迭代的绝对容差
+  # accept_on_max_fixed_point_iteration = true
   [TimeStepper]
     type = FunctionDT
     function = dt_limit_func
@@ -210,10 +209,11 @@ a3 = ${a3}
 [Functions]
   [dt_limit_func]
     type = ParsedFunction
-    expression = 'if(t < ${xTime}, 100,
-                  if(t < (${xTime}+${timePlus1}), 1,
-                  if(t < ${PowerTimeTotal},${dt1},
-                  if(t < ${endTime},${dt1},${dt1}))))'
+    expression = 'if(t < 1000, 200,
+                  if(t < 3000, 25,
+                  if(t < 150000, ${dt},
+                  if(t < (${endTime__100000}),${dtMax},
+                  if(t < (${endTime__50000}),${dt},10000)))))'
   []
 []
 [Adaptivity]

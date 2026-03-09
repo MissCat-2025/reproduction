@@ -1,3 +1,8 @@
+"""
+Step1(series)：按序列对齐方式生成 parameter_studies_series 案例目录。
+支持参数广播与 MultiApp/SingleApp 模式。
+"""
+
 import os
 import re
 import shutil
@@ -9,12 +14,14 @@ from datetime import datetime
 # base_dir = '/home/yp/projects/raccoon/FuelFracture/RodFuel/Liwei2021/MaterialParametersVerification/step4.3_ThermalCreepFractureReturnMapQuarter'
 
 # 修改为使用脚本所在路径，或外部指定的工程目录
+# 工程根目录：支持环境变量覆盖
 base_dir = os.environ.get("PROJECT_BASE_DIR", os.path.dirname(os.path.abspath(__file__)))
 # 主程序模板文件与子程序模板文件名可以通过环境变量覆盖
 template_main_name = os.environ.get("TEMPLATE_MAIN_NAME", "Main.i")
 template_sub_name = os.environ.get("TEMPLATE_SUB_NAME", "Sub.i")
 template_main = os.path.join(base_dir, template_main_name)
 template_sub = os.path.join(base_dir, template_sub_name)
+# 输出目录：每个 case_* 一个子目录
 output_dir = os.path.join(base_dir, 'parameter_studies_series')
 
 # Checkpoint配置，加入存档功能，支持环境变量覆盖
@@ -161,6 +168,7 @@ def generate_parameter_combinations_aligned(params_dict):
     return combos
 
 def generate_study_cases():
+    # 入口：生成全部序列案例
     # 校验主程序模板文件
     if not os.path.exists(template_main):
         raise FileNotFoundError("主程序模板文件不存在，请检查路径配置")

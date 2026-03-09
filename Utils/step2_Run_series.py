@@ -1,3 +1,8 @@
+"""
+Step2(series)：批量运行 parameter_studies_series 案例。
+自动激活 MOOSE 环境、支持断点恢复、写 run.log 并保存进度。
+"""
+
 import os
 import glob
 import subprocess
@@ -16,6 +21,7 @@ from datetime import datetime
 # base_dir = '/home/yp/projects/raccoon/FuelFracture/RodFuel/Liwei2021/MaterialParametersVerification/step4.3_ThermalCreepFractureReturnMapQuarter'
 
 # 修改为使用脚本所在路径，或外部指定的工程目录
+# 工程路径与可执行文件配置
 BASE_DIR = os.environ.get("PROJECT_BASE_DIR", os.path.dirname(os.path.abspath(__file__)))
 OUTPUT_DIR = os.path.join(BASE_DIR, 'parameter_studies_series')
 MOOSE_APP = os.environ.get("MOOSE_APP", "/home/yp/projects/reproduction/reproduction-opt")
@@ -265,6 +271,7 @@ def run_case(input_path, is_first_case=False):
         }
 
 def main():
+    # 主流程：检查环境、扫描案例、逐个执行并写入日志
     # 检查环境
     issues = check_environment()
     if issues:
