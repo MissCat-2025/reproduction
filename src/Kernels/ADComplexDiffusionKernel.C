@@ -64,12 +64,18 @@ ADComplexDiffusionKernel::computeQpResidual()
   const ADReal inv_T = 1.0 / T;
   const ADReal RT = _R * T;
   
+  using MetaPhysicL::exp;
+  using MetaPhysicL::log10;
+  using MetaPhysicL::pow;
+  using std::exp;
+  using std::log10;
+  using std::pow;
+
   // 计算扩散系数D
   // 预计算log项，避免重复计算
-  const ADReal log_term = std::log10(1.0 + 2.0/u);
-  const ADReal D = std::pow(10.0, (-9.386 - 4260.0 * inv_T + 
-                                  0.0012 * T * u + 
-                                  0.00075 * T * log_term));
+  const ADReal log_term = log10(1.0 + 2.0 / u);
+  const ADReal D =
+      pow(10.0, (-9.386 - 4260.0 * inv_T + 0.0012 * T * u + 0.00075 * T * log_term));
   
   // 计算几何因子F
   // 预计算分母项
@@ -78,7 +84,7 @@ ADComplexDiffusionKernel::computeQpResidual()
   const ADReal F = (2.0 + u) / (2.0 * denom1 * denom2);
   
   // 计算Q_star
-  const ADReal exp_term = std::exp(-u/0.0261);
+  const ADReal exp_term = exp(-u / 0.0261);
   const ADReal Q_star = -1380.8 - 134435.5 * exp_term;
   
   // 计算温度系数

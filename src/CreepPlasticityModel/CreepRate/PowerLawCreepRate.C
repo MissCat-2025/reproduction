@@ -28,19 +28,25 @@ PowerLawCreepRate::PowerLawCreepRate(const InputParameters & parameters)
 ADReal
 PowerLawCreepRate::computeCreepRate(const ADReal & effective_stress, const ADReal & effective_creep_strain)
 {
+  using MetaPhysicL::pow;
+  using std::pow;
+
   // Power law creep rate: dot_epsilon_c_eq = A * sigma_eq^n
-  return _A * std::pow(effective_stress, _n);
+  return _A * pow(effective_stress, _n);
 }
 
 ADReal
 PowerLawCreepRate::computeCreepRateStressDerivative(const ADReal & effective_stress, const ADReal & effective_creep_strain)
 {
+  using MetaPhysicL::pow;
+  using std::pow;
+
   // Derivative of creep rate with respect to effective stress
   // d(dot_epsilon_c_eq)/d(sigma_eq) = A * n * sigma_eq^(n-1)
   if (effective_stress <= 0.0)
     return 0.0;
   
-  return _A * _n * std::pow(effective_stress, _n - 1.0);
+  return _A * _n * pow(effective_stress, _n - 1.0);
 }
 
 ADReal

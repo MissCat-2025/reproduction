@@ -87,8 +87,15 @@ UO2PowerLawCreepStressUpdate::computeStressInitialize(
   ADReal x = _oxygen_ratio[_qp];
   // if (MetaPhysicL::raw_value(x) <= 1.0)
   //   x = 1.0 + 1e-12;
-  const ADReal log_x = std::log10(x);
-  const ADReal exp_common = std::exp(-20.0 / log_x - 8.0);
+  using MetaPhysicL::exp;
+  using MetaPhysicL::log10;
+  using MetaPhysicL::pow;
+  using std::exp;
+  using std::log10;
+  using std::pow;
+
+  const ADReal log_x = log10(x);
+  const ADReal exp_common = exp(-20.0 / log_x - 8.0);
   const ADReal denom = 1.0 / (exp_common + 1.0);
   
   // 计算激活能
@@ -96,9 +103,9 @@ UO2PowerLawCreepStressUpdate::computeStressInitialize(
   _Q2 = 83143.0 * denom + 469191.0;
   
   // 预计算指数项
-  _exp_Q1 = std::exp(-_Q1 * inv_RT);
-  _exp_Q2 = std::exp(-_Q2 * inv_RT);
-  _exp_Q3 = std::exp(-_Q3 * inv_RT);
+  _exp_Q1 = exp(-_Q1 * inv_RT);
+  _exp_Q2 = exp(-_Q2 * inv_RT);
+  _exp_Q3 = exp(-_Q3 * inv_RT);
   
   // 预计算密度和晶粒尺寸相关项
   _density_term1 = 1.0 / ((_theoretical_density - _a3) * _grain_size * _grain_size);
@@ -155,6 +162,9 @@ UO2PowerLawCreepStressUpdate::updateState(
 ADReal
 UO2PowerLawCreepStressUpdate::compute_three_shear_modulus_New(const GenericRankFourTensor<true> & elasticity_tensor)
 {
+  using MetaPhysicL::sqrt;
+  using std::sqrt;
+
   // 取上次 updateState 保存的偏应力
   ADRankTwoTensor dev = _deviatoric_trial_stress[_qp];
   // 计算 ||dev||^2 并防止为零
@@ -163,7 +173,7 @@ UO2PowerLawCreepStressUpdate::compute_three_shear_modulus_New(const GenericRankF
   if (MooseUtils::absoluteFuzzyEqual(val2, 0.0))
     dev2 = libMesh::TOLERANCE * libMesh::TOLERANCE;
   // 规范化因子 sqrt(1.5*dev2)
-  ADReal norm = std::sqrt(1.5 * dev2);
+  ADReal norm = sqrt(1.5 * dev2);
   // 流向张量 Np
   ADRankTwoTensor Np = (1.5 * dev) / norm;
 
@@ -194,7 +204,7 @@ UO2PowerLawCreepStressUpdate::computeResidual(
 
   // 计算各分量蠕变率，注意这里使用的是 stress_creep_driving
   ADReal creep_th1 = _fission_term * _density_term1 * stress_creep_driving * _exp_Q1;
-  ADReal creep_th2 = _a8 * _density_term2 * std::pow(stress_creep_driving, 4.5) * _exp_Q2;
+  ADReal creep_th2 = _a8 * _density_term2 * pow(stress_creep_driving, 4.5) * _exp_Q2;
   
   // 辐照蠕变，注意这里使用的是 stress_creep_driving
   ADReal creep_ir = _a7 * _fission_rate * stress_creep_driving * _exp_Q3;
@@ -220,7 +230,7 @@ UO2PowerLawCreepStressUpdate::computeDerivative(
   
   // 计算蠕变本构中各项对 stress_creep_driving 的导数
   ADReal d_creep_th1_d_scd = _fission_term * _density_term1 * _exp_Q1;
-  ADReal d_creep_th2_d_scd = 4.5 * _a8 * _density_term2 * std::pow(stress_creep_driving, 3.5) * _exp_Q2;
+  ADReal d_creep_th2_d_scd = 4.5 * _a8 * _density_term2 * pow(stress_creep_driving, 3.5) * _exp_Q2;
   
   ADReal d_creep_ir_d_scd = _a7 * _fission_rate * _exp_Q3;
   

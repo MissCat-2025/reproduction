@@ -49,13 +49,18 @@ ADReal
 SmallDeformationAsigmaNstrainM::computeResidual(const ADReal & effective_trial_stress,
                                                 const ADReal & delta_ep)
 {
+  using MetaPhysicL::max;
+  using std::max;
+  using MetaPhysicL::pow;
+  using std::pow;
+
   const ADReal dt = _dt;
   
   // 计算当前累积蠕变应变
   const ADReal epsilon_c_eq = _ep_old[_qp] + delta_ep;
   
   // 关键修正：对于负指数，需要更大的安全值
-  const ADReal epsilon_c_eq_safe = std::max(epsilon_c_eq, 1.0e-3);  // 改为1e-6
+  const ADReal epsilon_c_eq_safe = max(epsilon_c_eq, 1.0e-3);
   
   // 单位转换：Pa -> MPa
   const ADReal sigma_eq_MPa = effective_trial_stress / 1.0e6;
@@ -68,7 +73,7 @@ SmallDeformationAsigmaNstrainM::computeResidual(const ADReal & effective_trial_s
   if (sigma_eq_MPa > 0.0)
   {
     // 对于负指数，使用更安全的计算
-    term1 = _A1 * std::pow(sigma_eq_MPa, _n1) * std::pow(epsilon_c_eq_safe, _m1);
+    term1 = _A1 * pow(sigma_eq_MPa, _n1) * pow(epsilon_c_eq_safe, _m1);
     creep_rate_h += term1;
   }
   
@@ -76,7 +81,7 @@ SmallDeformationAsigmaNstrainM::computeResidual(const ADReal & effective_trial_s
   ADReal term2 = 0.0;
   if (sigma_eq_MPa > 0.0 && epsilon_c_eq > 0.0)
   {
-    term2 = _A2 * std::pow(sigma_eq_MPa, _n2) * std::pow(epsilon_c_eq, _m2);
+    term2 = _A2 * pow(sigma_eq_MPa, _n2) * pow(epsilon_c_eq, _m2);
     creep_rate_h += term2;
   }
   
@@ -84,7 +89,7 @@ SmallDeformationAsigmaNstrainM::computeResidual(const ADReal & effective_trial_s
   ADReal term3 = 0.0;
   if (sigma_eq_MPa > 0.0 && epsilon_c_eq > 0.0)
   {
-    term3 = _A3 * std::pow(sigma_eq_MPa, _n3) * std::pow(epsilon_c_eq, _m3);
+    term3 = _A3 * pow(sigma_eq_MPa, _n3) * pow(epsilon_c_eq, _m3);
     creep_rate_h += term3;
   }
   
@@ -102,6 +107,11 @@ ADReal
 SmallDeformationAsigmaNstrainM::computeDerivative(const ADReal & effective_trial_stress,
                                                   const ADReal & delta_ep)
 {
+  using MetaPhysicL::max;
+  using std::max;
+  using MetaPhysicL::pow;
+  using std::pow;
+
   const ADReal dt = _dt;
   
   if (dt <= 0.0)
@@ -110,7 +120,7 @@ SmallDeformationAsigmaNstrainM::computeDerivative(const ADReal & effective_trial
   const ADReal epsilon_c_eq = _ep_old[_qp] + delta_ep;
   
   // 与computeResidual保持一致的安全值
-  const ADReal epsilon_c_eq_safe = std::max(epsilon_c_eq, 1.0e-6);
+  const ADReal epsilon_c_eq_safe = max(epsilon_c_eq, 1.0e-6);
   const ADReal sigma_eq_MPa = effective_trial_stress / 1.0e6;
   
   // 计算蠕变率对蠕变应变的导数
@@ -120,19 +130,19 @@ SmallDeformationAsigmaNstrainM::computeDerivative(const ADReal & effective_trial
   if (_m1 != 0.0 && sigma_eq_MPa > 0.0)
   {
     // 对于负指数，使用安全值
-    d_creep_rate_d_eps += _A1 * std::pow(sigma_eq_MPa, _n1) * _m1 * std::pow(epsilon_c_eq_safe, _m1 - 1.0);
+    d_creep_rate_d_eps += _A1 * pow(sigma_eq_MPa, _n1) * _m1 * pow(epsilon_c_eq_safe, _m1 - 1.0);
   }
   
   // 第二项的导数：A2 * sigma^n2 * epsilon^m2
   if (_m2 != 0.0 && sigma_eq_MPa > 0.0 && epsilon_c_eq > 0.0)
   {
-    d_creep_rate_d_eps += _A2 * std::pow(sigma_eq_MPa, _n2) * _m2 * std::pow(epsilon_c_eq, _m2 - 1.0);
+    d_creep_rate_d_eps += _A2 * pow(sigma_eq_MPa, _n2) * _m2 * pow(epsilon_c_eq, _m2 - 1.0);
   }
   
   // 第三项的导数：A3 * sigma^n3 * epsilon^m3
   if (_m3 != 0.0 && sigma_eq_MPa > 0.0 && epsilon_c_eq > 0.0)
   {
-    d_creep_rate_d_eps += _A3 * std::pow(sigma_eq_MPa, _n3) * _m3 * std::pow(epsilon_c_eq, _m3 - 1.0);
+    d_creep_rate_d_eps += _A3 * pow(sigma_eq_MPa, _n3) * _m3 * pow(epsilon_c_eq, _m3 - 1.0);
   }
   
   // 单位转换：1/h -> 1/s

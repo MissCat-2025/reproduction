@@ -67,7 +67,7 @@ SmallDeformationH::computeStress(const ADRankTwoTensor & strain)
 
   const ADReal Y0 = 0.5 * _ft[_qp] * _ft[_qp] / _E0[_qp];
   const ADReal Y_bar = 0.5 * sigma_bar_eq * sigma_bar_eq / _E0[_qp];
-  _H[_qp] = std::max(Y0, std::max(_H_old[_qp], Y_bar));
+  _H[_qp] = std::max(Y0, MetaPhysicL::max(_H_old[_qp], Y_bar));
 
   _psie_active[_qp] = _H[_qp];
   _psie[_qp] = _g[_qp] * _psie_active[_qp];

@@ -24,13 +24,16 @@ void
 J2Plasticity_C::updateState(ADRankTwoTensor & stress,
                                           ADRankTwoTensor & elastic_strain)
 {
+  using MetaPhysicL::sqrt;
+  using std::sqrt;
+
   //从Creep过来的stress、elastic_strain已经是试应力张量和试应变张量了
   // 1. 初始化塑性应变增量
   ADReal delta_ep = 0.0;
   
   // 2. 计算流动方向 (Prandtl-Reuss流动准则)
   ADRankTwoTensor stress_dev = stress.deviatoric();  // 偏应力
-  ADReal stress_dev_norm = std::sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
+  ADReal stress_dev_norm = sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
   
   if (stress_dev_norm > 1e-12)
     _Np[_qp] = 1.5 * stress_dev / stress_dev_norm;  // 归一化的流动方向

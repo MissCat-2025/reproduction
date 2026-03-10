@@ -47,6 +47,9 @@ CoupledStressStrainCreepRate::CoupledStressStrainCreepRate(const InputParameters
 ADReal
 CoupledStressStrainCreepRate::computeCreepRate(const ADReal & effective_stress, const ADReal & effective_creep_strain)
 {
+  using MetaPhysicL::pow;
+  using std::pow;
+
   // Coupled stress-strain creep rate: 
   // dot_epsilon_c_eq = A1*sigma_eq^n1*epsilon_c_eq^m1 + A2*sigma_eq^n2*epsilon_c_eq^m2 + A3*sigma_eq^n3*epsilon_c_eq^m3
   
@@ -56,9 +59,9 @@ CoupledStressStrainCreepRate::computeCreepRate(const ADReal & effective_stress, 
   ADReal epsilon_c_eq = (effective_creep_strain <= 1e-12) ? 1e-12 : effective_creep_strain;
   
   // 计算三个项
-  ADReal term1 = _A1 * std::pow(sigma_eq, _n1) * std::pow(epsilon_c_eq, _m1);
-  ADReal term2 = _A2 * std::pow(sigma_eq, _n2) * std::pow(epsilon_c_eq, _m2);
-  ADReal term3 = _A3 * std::pow(sigma_eq, _n3) * std::pow(epsilon_c_eq, _m3);
+  ADReal term1 = _A1 * pow(sigma_eq, _n1) * pow(epsilon_c_eq, _m1);
+  ADReal term2 = _A2 * pow(sigma_eq, _n2) * pow(epsilon_c_eq, _m2);
+  ADReal term3 = _A3 * pow(sigma_eq, _n3) * pow(epsilon_c_eq, _m3);
   
   return term1 + term2 + term3;
 }
@@ -66,6 +69,9 @@ CoupledStressStrainCreepRate::computeCreepRate(const ADReal & effective_stress, 
 ADReal
 CoupledStressStrainCreepRate::computeCreepRateStressDerivative(const ADReal & effective_stress, const ADReal & effective_creep_strain)
 {
+  using MetaPhysicL::pow;
+  using std::pow;
+
   // Derivative of creep rate with respect to effective stress:
   // d(dot_epsilon_c_eq)/d(sigma_eq) = A1*n1*sigma_eq^(n1-1)*epsilon_c_eq^m1 + 
   //                                   A2*n2*sigma_eq^(n2-1)*epsilon_c_eq^m2 + 
@@ -79,9 +85,9 @@ CoupledStressStrainCreepRate::computeCreepRateStressDerivative(const ADReal & ef
   ADReal epsilon_c_eq = (effective_creep_strain <= 1e-12) ? 1e-12 : effective_creep_strain;
   
   // 计算三个项的导数
-  ADReal dterm1_dsigma = _A1 * _n1 * std::pow(sigma_eq, _n1 - 1.0) * std::pow(epsilon_c_eq, _m1);
-  ADReal dterm2_dsigma = _A2 * _n2 * std::pow(sigma_eq, _n2 - 1.0) * std::pow(epsilon_c_eq, _m2);
-  ADReal dterm3_dsigma = _A3 * _n3 * std::pow(sigma_eq, _n3 - 1.0) * std::pow(epsilon_c_eq, _m3);
+  ADReal dterm1_dsigma = _A1 * _n1 * pow(sigma_eq, _n1 - 1.0) * pow(epsilon_c_eq, _m1);
+  ADReal dterm2_dsigma = _A2 * _n2 * pow(sigma_eq, _n2 - 1.0) * pow(epsilon_c_eq, _m2);
+  ADReal dterm3_dsigma = _A3 * _n3 * pow(sigma_eq, _n3 - 1.0) * pow(epsilon_c_eq, _m3);
   
   return dterm1_dsigma + dterm2_dsigma + dterm3_dsigma;
 }
@@ -89,6 +95,9 @@ CoupledStressStrainCreepRate::computeCreepRateStressDerivative(const ADReal & ef
 ADReal
 CoupledStressStrainCreepRate::computeCreepRateStrainDerivative(const ADReal & effective_stress, const ADReal & effective_creep_strain)
 {
+  using MetaPhysicL::pow;
+  using std::pow;
+
   // Derivative of creep rate with respect to effective creep strain:
   // d(dot_epsilon_c_eq)/d(epsilon_c_eq) = A1*m1*sigma_eq^n1*epsilon_c_eq^(m1-1) + 
   //                                        A2*m2*sigma_eq^n2*epsilon_c_eq^(m2-1) + 
@@ -102,9 +111,9 @@ CoupledStressStrainCreepRate::computeCreepRateStrainDerivative(const ADReal & ef
   ADReal epsilon_c_eq = (effective_creep_strain <= 1e-12) ? 1e-12 : effective_creep_strain;
   
   // 计算三个项的导数
-  ADReal dterm1_depsilon = _A1 * _m1 * std::pow(sigma_eq, _n1) * std::pow(epsilon_c_eq, _m1 - 1.0);
-  ADReal dterm2_depsilon = _A2 * _m2 * std::pow(sigma_eq, _n2) * std::pow(epsilon_c_eq, _m2 - 1.0);
-  ADReal dterm3_depsilon = _A3 * _m3 * std::pow(sigma_eq, _n3) * std::pow(epsilon_c_eq, _m3 - 1.0);
+  ADReal dterm1_depsilon = _A1 * _m1 * pow(sigma_eq, _n1) * pow(epsilon_c_eq, _m1 - 1.0);
+  ADReal dterm2_depsilon = _A2 * _m2 * pow(sigma_eq, _n2) * pow(epsilon_c_eq, _m2 - 1.0);
+  ADReal dterm3_depsilon = _A3 * _m3 * pow(sigma_eq, _n3) * pow(epsilon_c_eq, _m3 - 1.0);
   
   return dterm1_depsilon + dterm2_depsilon + dterm3_depsilon;
 } 

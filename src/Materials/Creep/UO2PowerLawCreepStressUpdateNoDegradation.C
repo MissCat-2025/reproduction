@@ -81,18 +81,25 @@ UO2PowerLawCreepStressUpdateNoDegradationTempl<is_ad>::computeStressInitialize(
 
   GenericReal<is_ad> x = _oxygen_ratio[_qp];
 
-  const GenericReal<is_ad> log_x = std::log10(x);
-  const GenericReal<is_ad> exp_common = std::exp(-20.0 / log_x - 8.0);
+  using MetaPhysicL::exp;
+  using MetaPhysicL::log10;
+  using MetaPhysicL::pow;
+  using std::exp;
+  using std::log10;
+  using std::pow;
+
+  const GenericReal<is_ad> log_x = log10(x);
+  const GenericReal<is_ad> exp_common = exp(-20.0 / log_x - 8.0);
   const GenericReal<is_ad> denom = 1.0 / (exp_common + 1.0);
 
   const GenericReal<is_ad> Q1 = 74829.0 * denom + 301762.0;
   const GenericReal<is_ad> Q2 = 83143.0 * denom + 469191.0;
 
-  _exp_Q1 = std::exp(-Q1 * inv_RT);
-  _exp_Q2 = std::exp(-Q2 * inv_RT);
-  _exp_Q3 = std::exp(-_Q3 * inv_RT);
+  _exp_Q1 = exp(-Q1 * inv_RT);
+  _exp_Q2 = exp(-Q2 * inv_RT);
+  _exp_Q3 = exp(-_Q3 * inv_RT);
 
-  _sigma_trans = 1.6547e7 * std::pow(_grain_size, 0.5714);
+  _sigma_trans = 1.6547e7 * pow(_grain_size, 0.5714);
   _density_term1 = 1.0 / ((_theoretical_density - _a3) * _grain_size * _grain_size);
   _density_term2 = 1.0 / (_theoretical_density - _a6);
   _fission_term = _a1 + _a2 * _fission_rate;
@@ -104,6 +111,9 @@ ScalarType
 UO2PowerLawCreepStressUpdateNoDegradationTempl<is_ad>::computeResidualInternal(
     const GenericReal<is_ad> & effective_trial_stress, const ScalarType & scalar)
 {
+  using MetaPhysicL::pow;
+  using std::pow;
+
   const ScalarType effective_stress = effective_trial_stress - _three_shear_modulus * scalar;
   // if (MetaPhysicL::raw_value(effective_stress) <= 0.0)
   //   return -scalar;
@@ -121,13 +131,13 @@ UO2PowerLawCreepStressUpdateNoDegradationTempl<is_ad>::computeResidualInternal(
     else
     {
       creep_th1 = _fission_term * _density_term1 * _sigma_trans * _exp_Q1;
-      creep_th2 = _a5 * _density_term2 * std::pow(effective_stress, 4.5) * _exp_Q2;
+      creep_th2 = _a5 * _density_term2 * pow(effective_stress, 4.5) * _exp_Q2;
     }
   }
   else
   {
     creep_th1 = _fission_term * _density_term1 * effective_stress * _exp_Q1;
-    creep_th2 = _a5 * _density_term2 * std::pow(effective_stress, 4.5) * _exp_Q2;
+    creep_th2 = _a5 * _density_term2 * pow(effective_stress, 4.5) * _exp_Q2;
   }
 
   const ScalarType creep_ir = _a8 * _fission_rate * effective_stress * _exp_Q3;
@@ -141,6 +151,9 @@ GenericReal<is_ad>
 UO2PowerLawCreepStressUpdateNoDegradationTempl<is_ad>::computeDerivative(
     const GenericReal<is_ad> & effective_trial_stress, const GenericReal<is_ad> & scalar)
 {
+  using MetaPhysicL::pow;
+  using std::pow;
+
   const GenericReal<is_ad> effective_stress = effective_trial_stress - _three_shear_modulus * scalar;
   if (MetaPhysicL::raw_value(effective_stress) <= 0.0)
     return -1.0;
@@ -158,15 +171,13 @@ UO2PowerLawCreepStressUpdateNoDegradationTempl<is_ad>::computeDerivative(
     else
     {
       d_creep_th1_d_stress = 0.0;
-      d_creep_th2_d_stress =
-          4.5 * _a5 * _density_term2 * std::pow(effective_stress, 3.5) * _exp_Q2;
+      d_creep_th2_d_stress = 4.5 * _a5 * _density_term2 * pow(effective_stress, 3.5) * _exp_Q2;
     }
   }
   else
   {
     d_creep_th1_d_stress = _fission_term * _density_term1 * _exp_Q1;
-    d_creep_th2_d_stress =
-        4.5 * _a5 * _density_term2 * std::pow(effective_stress, 3.5) * _exp_Q2;
+    d_creep_th2_d_stress = 4.5 * _a5 * _density_term2 * pow(effective_stress, 3.5) * _exp_Q2;
   }
 
   const GenericReal<is_ad> d_creep_ir_d_stress = _a8 * _fission_rate * _exp_Q3;
