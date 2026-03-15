@@ -17,8 +17,10 @@ from datetime import datetime
 # 工程根目录：支持环境变量覆盖
 base_dir = os.environ.get("PROJECT_BASE_DIR", os.path.dirname(os.path.abspath(__file__)))
 # 主程序模板文件与子程序模板文件相同，则是单程序模式
-template_main = os.path.join(base_dir, 'Main.i')
-template_sub = os.path.join(base_dir, 'Sub.i')
+template_main_name = os.environ.get("TEMPLATE_MAIN_NAME", "Main.i")
+template_sub_name = os.environ.get("TEMPLATE_SUB_NAME", "Sub.i")
+template_main = os.path.join(base_dir, template_main_name)
+template_sub = os.path.join(base_dir, template_sub_name)
 # 输出目录：每个 case_* 一个子目录
 output_dir = os.path.join(base_dir, 'parameter_studies')
 

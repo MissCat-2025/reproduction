@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# LinearPower: 75
+# 生成时间: 2026-03-11 23:11:39
+
 
 [Problem]
   kernel_coverage_check = false

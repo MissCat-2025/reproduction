@@ -1,3 +1,14 @@
+# === 参数研究案例 ===
+<<<<<<< HEAD:2Annular/PlaneStressQ/7Cof/case_002_co4500/sub_co4500.i
+# coolant_heat_transfer_coefficient_out: 4500
+# 生成时间: 2026-03-13 11:10:01
+=======
+# pellet_critical_energy: 5
+# pellet_critical_fracture_strength: 8.00e+7
+# WeibullShape: 20
+# 生成时间: 2026-03-10 15:25:41
+>>>>>>> 2515fcd755f920fd9633bd2d4793eb9ed34a0166:2Annular/PlaneStressQ/parameter_studies/case_023_pe5_pe8_00e+7_We20/sub_pe5_pe8_00e+7_We20.i
+
 
 [Problem]
   kernel_coverage_check = false

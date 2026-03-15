@@ -1,3 +1,8 @@
+# === 参数研究案例 ===
+# end_time = 1.05e+5
+# length_scale_paramete: 3.00e-5
+# 生成时间: 2026-03-10 14:03:23
+
 
 [Problem]
   kernel_coverage_check = false
@@ -8,7 +13,7 @@
 # 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
 pellet_inner_diameter = '${pellet_inner_diameter}'         # 芯块内直径mm
 pellet_outer_diameter = '${pellet_outer_diameter}'         # 芯块外直径mm
-# length_scale_paramete = 4.50e-5
+# length_scale_paramete = 3.00e-5
 endTime = ${endTime}
 endTime__50000 = '${fparse endTime-5000}'
 endTime__100000 = '${fparse endTime-100000}'
@@ -226,7 +231,7 @@ a3 = ${a3}
   abort_on_solve_fail = true
   dtmin = 1
   dtmax = 50000
-  end_time = ${endTime} #105000#${endTime} # 总时间24h
+  end_time = 105000#${endTime} # 总时间24h
 
   fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
   [TimeStepper]
