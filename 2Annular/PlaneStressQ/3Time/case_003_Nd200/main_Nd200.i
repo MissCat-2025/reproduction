@@ -1,7 +1,14 @@
 # === 参数研究案例 ===
+<<<<<<< HEAD:2Annular/PlaneStressQ/3Time/case_003_Nd200/main_Nd200.i
 # end_time = 1.05e+5
 # Ndt: 200
 # 生成时间: 2026-03-09 22:56:27
+=======
+# pellet_critical_energy: 5
+# pellet_critical_fracture_strength: 8.00e+7
+# WeibullShape: 20
+# 生成时间: 2026-03-10 15:25:41
+>>>>>>> 2515fcd755f920fd9633bd2d4793eb9ed34a0166:2Annular/PlaneStressQ/parameter_studies/case_023_pe5_pe8_00e+7_We20/main_pe5_pe8_00e+7_We20.i
 
 # conda activate moose && dos2unix main_fi4_00e+19.i&& dos2unix sub_fi4_00e+19.i &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i main_fi4_00e+19.i --recover
 # conda activate moose && mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i Main.i --mesh-only

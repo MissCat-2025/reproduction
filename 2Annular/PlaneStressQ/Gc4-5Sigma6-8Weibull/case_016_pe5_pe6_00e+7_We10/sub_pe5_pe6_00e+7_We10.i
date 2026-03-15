@@ -2,7 +2,7 @@
 # pellet_critical_energy: 5
 # pellet_critical_fracture_strength: 6.00e+7
 # WeibullShape: 10
-# 生成时间: 2026-03-07 20:30:19
+# 生成时间: 2026-03-10 15:25:41
 
 
 [Problem]

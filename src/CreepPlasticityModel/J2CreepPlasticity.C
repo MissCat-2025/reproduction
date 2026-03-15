@@ -109,6 +109,9 @@ J2CreepPlasticity::setQp(unsigned int qp)
 void
 J2CreepPlasticity::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elastic_strain)
 {
+  using MetaPhysicL::sqrt;
+  using std::sqrt;
+
   // 设置塑性模型的蠕变模型指针（用于蠕变-塑性耦合计算）
   if (_plasticity_model)
   {
@@ -131,7 +134,7 @@ J2CreepPlasticity::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elast
 
   // 计算偏应力和有效应力
   ADRankTwoTensor stress_dev = stress_trial.deviatoric();
-  ADReal effective_stress_trial = std::sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
+  ADReal effective_stress_trial = sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
   
   // 计算流动方向
   if (effective_stress_trial > 1e-15 || effective_stress_trial < -1e-15)
@@ -155,7 +158,7 @@ J2CreepPlasticity::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elast
   
   // 重新计算偏应力和有效应力
   stress_dev = stress_np.deviatoric();
-  ADReal effective_stress_np = std::sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
+  ADReal effective_stress_np = sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
   
   // 更新流动方向
   if (effective_stress_np > 1e-15)
@@ -200,7 +203,7 @@ J2CreepPlasticity::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elast
   
   // 计算当前的有效应力
   stress_dev = stress.deviatoric();
-  ADReal effective_stress = std::sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
+  ADReal effective_stress = sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
   
   // 计算蠕变应变增量
   ADReal delta_ec_total = _ec[_qp] - _ec_old[_qp];

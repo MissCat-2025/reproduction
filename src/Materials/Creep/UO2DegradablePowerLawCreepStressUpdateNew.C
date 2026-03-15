@@ -93,8 +93,15 @@ UO2DegradablePowerLawCreepStressUpdateNew::computeStressInitialize(
   ADReal x = _oxygen_ratio[_qp];
   if (MetaPhysicL::raw_value(x) <= 1.0)
     x = 1.0 + 1e-12;
-  const ADReal log_x = std::log10(x);
-  const ADReal exp_common = std::exp(-20.0 / log_x - 8.0);
+  using MetaPhysicL::exp;
+  using MetaPhysicL::log10;
+  using MetaPhysicL::pow;
+  using std::exp;
+  using std::log10;
+  using std::pow;
+
+  const ADReal log_x = log10(x);
+  const ADReal exp_common = exp(-20.0 / log_x - 8.0);
   const ADReal denom = 1.0 / (exp_common + 1.0);
   
   // 计算激活能
@@ -102,12 +109,12 @@ UO2DegradablePowerLawCreepStressUpdateNew::computeStressInitialize(
   _Q2 = 83143.0 * denom + 469191.0;
   
   // 预计算指数项
-  _exp_Q1 = std::exp(-_Q1 * inv_RT);
-  _exp_Q2 = std::exp(-_Q2 * inv_RT);
-  _exp_Q3 = std::exp(-_Q3 * inv_RT);
+  _exp_Q1 = exp(-_Q1 * inv_RT);
+  _exp_Q2 = exp(-_Q2 * inv_RT);
+  _exp_Q3 = exp(-_Q3 * inv_RT);
   
   // 计算转变应力
-  _sigma_trans = 1.6547e7 * std::pow(_grain_size, 0.5714);
+  _sigma_trans = 1.6547e7 * pow(_grain_size, 0.5714);
   
   // 预计算密度和晶粒尺寸相关项
   _density_term1 = 1.0 / ((_theoretical_density - _a3) * _grain_size * _grain_size);
@@ -121,6 +128,9 @@ ADReal
 UO2DegradablePowerLawCreepStressUpdateNew::computeResidual(
     const ADReal & effective_trial_stress, const ADReal & scalar)
 {
+  using MetaPhysicL::sqrt;
+  using std::sqrt;
+
   // 计算有效应力，考虑退化函数
   ADReal effective_stress;
   if (_use_stress_degradation)
@@ -138,7 +148,7 @@ UO2DegradablePowerLawCreepStressUpdateNew::computeResidual(
       dev2 = libMesh::TOLERANCE * libMesh::TOLERANCE;
     
     // 规范化因子 sqrt(1.5*dev2)
-    ADReal norm = std::sqrt(1.5 * dev2);
+    ADReal norm = sqrt(1.5 * dev2);
     
     // 流向张量 Np
     ADRankTwoTensor Np = (1.5 * dev) / norm;
@@ -156,7 +166,7 @@ UO2DegradablePowerLawCreepStressUpdateNew::computeResidual(
     ADReal radicand = term1 * term1 + term2 * term2 * (g_sq - 1.0) * alpha;
     if (MetaPhysicL::raw_value(radicand) <= 0.0)
       radicand = 0.0;
-    effective_stress = std::sqrt(radicand);
+    effective_stress = sqrt(radicand);
   }
   else
   {
@@ -183,14 +193,14 @@ UO2DegradablePowerLawCreepStressUpdateNew::computeResidual(
     {
       // 高应力区域：线性项使用转变应力，幂律项使用实际应力
       creep_th1 = _fission_term * _density_term1 * _sigma_trans * _exp_Q1;
-      creep_th2 = _a8 * _density_term2 * std::pow(effective_stress, 4.5) * _exp_Q2;
+      creep_th2 = _a8 * _density_term2 * pow(effective_stress, 4.5) * _exp_Q2;
     }
   }
   else
   {
     // 不使用转变应力 - 同时应用两项
     creep_th1 = _fission_term * _density_term1 * effective_stress * _exp_Q1;
-    creep_th2 = _a8 * _density_term2 * std::pow(effective_stress, 4.5) * _exp_Q2;
+    creep_th2 = _a8 * _density_term2 * pow(effective_stress, 4.5) * _exp_Q2;
   }
   
   // 辐照蠕变
@@ -207,6 +217,9 @@ ADReal
 UO2DegradablePowerLawCreepStressUpdateNew::computeDerivative(
     const ADReal & effective_trial_stress, const ADReal & scalar)
 {
+  using MetaPhysicL::sqrt;
+  using std::sqrt;
+
   // 计算有效应力，考虑退化函数
   ADReal effective_stress;
   ADReal d_effective_stress_d_scalar;
@@ -226,7 +239,7 @@ UO2DegradablePowerLawCreepStressUpdateNew::computeDerivative(
       dev2 = libMesh::TOLERANCE * libMesh::TOLERANCE;
     
     // 规范化因子 sqrt(1.5*dev2)
-    ADReal norm = std::sqrt(1.5 * dev2);
+    ADReal norm = sqrt(1.5 * dev2);
     
     // 流向张量 Np
     ADRankTwoTensor Np = (1.5 * dev) / norm;
@@ -248,7 +261,7 @@ UO2DegradablePowerLawCreepStressUpdateNew::computeDerivative(
     }
     else
     {
-      effective_stress = std::sqrt(radicand);
+      effective_stress = sqrt(radicand);
       ADReal d_term1_d_scalar = -_three_shear_modulus;
       ADReal d_term2_d_scalar = _three_shear_modulus;
       ADReal numerator = 2.0 * term1 * d_term1_d_scalar +
@@ -280,14 +293,14 @@ UO2DegradablePowerLawCreepStressUpdateNew::computeDerivative(
     else
     {
       // 高应力区域：线性项无应力依赖（因为使用转变应力），幂律项有导数
-      d_creep_th2_d_stress = 4.5 * _a8 * _density_term2 * std::pow(effective_stress, 3.5) * _exp_Q2;
+      d_creep_th2_d_stress = 4.5 * _a8 * _density_term2 * pow(effective_stress, 3.5) * _exp_Q2;
     }
   }
   else
   {
     // 不使用转变应力：两项都有导数
     d_creep_th1_d_stress = _fission_term * _density_term1 * _exp_Q1;
-    d_creep_th2_d_stress = 4.5 * _a8 * _density_term2 * std::pow(effective_stress, 3.5) * _exp_Q2;
+    d_creep_th2_d_stress = 4.5 * _a8 * _density_term2 * pow(effective_stress, 3.5) * _exp_Q2;
   }
   
   // 辐照蠕变导数

@@ -2,7 +2,7 @@
 # pellet_critical_energy: 5
 # pellet_critical_fracture_strength: 7.00e+7
 # WeibullShape: 50
-# 生成时间: 2026-03-07 20:30:19
+# 生成时间: 2026-03-10 15:25:41
 
 # conda activate moose && dos2unix main_fi4_00e+19.i&& dos2unix sub_fi4_00e+19.i &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i main_fi4_00e+19.i --recover
 # conda activate moose && mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i Main.i --mesh-only

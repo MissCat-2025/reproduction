@@ -1,7 +1,13 @@
 # === 参数研究案例 ===
 # end_time = 1.05e+5
 # pellet_critical_energy: 5
+<<<<<<< HEAD:2Annular/PlaneStressQ/5Gc/case_004_pe5/sub_pe5.i
 # 生成时间: 2026-03-11 15:53:26
+=======
+# pellet_critical_fracture_strength: 8.00e+7
+# WeibullShape: 10
+# 生成时间: 2026-03-10 15:25:41
+>>>>>>> 2515fcd755f920fd9633bd2d4793eb9ed34a0166:2Annular/PlaneStressQ/parameter_studies/case_024_pe5_pe8_00e+7_We10/sub_pe5_pe8_00e+7_We10.i
 
 
 [Problem]

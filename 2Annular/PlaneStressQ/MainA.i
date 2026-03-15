@@ -103,8 +103,13 @@ ksi = 2
 [MultiApps]
   [fracture]
     type = TransientMultiApp
+<<<<<<< HEAD:2Annular/PlaneStressQ/MainA.i
     input_files = 'sub_fi1_60e+19_la58_pe2_8.i'
     cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};endTime=${endTime};dt=${dt};pellet_inner_diameter=${pellet_inner_diameter};pellet_outer_diameter=${pellet_outer_diameter};dtMax=${dtMax}'
+=======
+    input_files = 'Sub.i'
+    cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};endTime=${endTime};dtmin=${dtmin};dt=${dt};pellet_inner_diameter=${pellet_inner_diameter};pellet_outer_diameter=${pellet_outer_diameter};dtMax=${dtMax}'
+>>>>>>> 2515fcd755f920fd9633bd2d4793eb9ed34a0166:2Annular/PlaneStressQ/Main.i
     execute_on = 'TIMESTEP_END'
         # 强制同步参数
         sub_cycling = false          # 禁止子循环
@@ -341,6 +346,27 @@ ksi = 2
   #   boundary = 'pellet_inner pellet_outer'
   #   value = 0.01
   # []
+<<<<<<< HEAD:2Annular/PlaneStressQ/MainA.i
+=======
+
+    #芯块包壳间隙压力
+    [gap_pressure_pellet_outerx]
+      type = Pressure
+      variable = disp_x
+      boundary = 'pellet_outer pellet_inner'
+      factor = 1
+      function = 2e6
+      # use_displaced_mesh = true
+    []
+    [gap_pressure_pellet_outery]
+      type = Pressure
+      variable = disp_y
+      boundary = 'pellet_outer pellet_inner'
+      factor = 1
+      function = 2e6
+      # use_displaced_mesh = true
+    []
+>>>>>>> 2515fcd755f920fd9633bd2d4793eb9ed34a0166:2Annular/PlaneStressQ/Main.i
   [coolant_bc_in]#对流边界条件
     type = ConvectiveFluxFunction
     variable = T
@@ -353,7 +379,11 @@ ksi = 2
   variable = T
   boundary = 'pellet_outer'
   T_infinity = T_infinity_out
+<<<<<<< HEAD:2Annular/PlaneStressQ/MainA.i
   coefficient = 4000 #W·m-2 K-1！！！！！！！！！！！！！！！！！！！！！！！！！！！
+=======
+  coefficient = 4000#3500 W·m-2 K-1！！！！！！！！！！！！！！！！！！！！！！！！！！！
+>>>>>>> 2515fcd755f920fd9633bd2d4793eb9ed34a0166:2Annular/PlaneStressQ/Main.i
 []
 []
 [Materials]
@@ -631,24 +661,6 @@ ksi = 2
 # 线密度转为体积密度的转换系数
 power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_radius^2)}' #新加的！！！！！！！！！！！！！！！！！！！！！！
 [Functions]
-  [gap_conductance_in]
-    type = PiecewiseLinear
-    data_file = '/home/yp/projects/reproduction/1Tasks/step3/s1Thermal/s1GapConductance/parameter_studies_series/case_003_in570_7_in582_8_li90/gap_conductance1/2D.csv'
-    x_index_in_file = 0
-    y_index_in_file = 4
-    xy_in_file_only = false
-    format = columns
-    extrap = true
-  []
-  [gap_conductance_out]
-    type = PiecewiseLinear
-    data_file = '/home/yp/projects/reproduction/1Tasks/step3/s1Thermal/s1GapConductance/parameter_studies_series/case_003_in570_7_in582_8_li90/gap_conductance1/2D.csv'
-    x_index_in_file = 0
-    y_index_in_file = 5
-    xy_in_file_only = false
-    format = columns
-    extrap = true
-  []
   [power_history] #新加的！！！！！！！！！！！！！！！！！！！！！！
   type = PiecewiseLinear
   # data_file = '../../../.././power_history2.csv'    # 创建一个包含上述数据的CSV文件，数据为<s,w/m>
@@ -659,6 +671,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
     y = '0.0 ${LinearPower0_2} ${LinearPower} ${LinearPower} 0 0'
     scale_factor = ${power_factor}
   []
+<<<<<<< HEAD:2Annular/PlaneStressQ/MainA.i
   # # 接触压力（来自热-接触计算的CSV）
   # [contact_pressure_outer_from_csv]
   #   type = PiecewiseLinear
@@ -669,6 +682,9 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   #   format = columns
   #   extrap = true
   # []
+=======
+  # 接触压力（来自热-接触计算的CSV）
+>>>>>>> 2515fcd755f920fd9633bd2d4793eb9ed34a0166:2Annular/PlaneStressQ/Main.i
   # 常数间隙压力（维度与原先函数一致，若BC有factor=1e6则此处为无量纲数值）
 [T_infinity_in]
   #间隙压力随时间的变化

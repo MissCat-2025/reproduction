@@ -51,6 +51,11 @@ ADRimEffertPowerBurnup::initQpStatefulProperties()
 ADReal
 ADRimEffertPowerBurnup::powerFactor(const Real & r) const
 {
+  using MetaPhysicL::exp;
+  using MetaPhysicL::pow;
+  using std::exp;
+  using std::pow;
+
 
 /*    
     公式:
@@ -58,9 +63,9 @@ ADRimEffertPowerBurnup::powerFactor(const Real & r) const
 \mathrm{term2}\ =\ 4.5\ Bu^{0.55}\exp{\left(-115\ \ \left(r_o\ -\ r\right)^{0.5}\right)}
 \mathrm{term3}=\left(-15.7Bu^2+3.5Bu\right)-1
     return f_r*/
-  ADReal term1 =_A*std::pow(((_burnup_old[_qp])),0.55) * std::exp(-180 * std::pow(((r - _pellet_inner_radius)),0.56));
-  ADReal term2 =_B*std::pow(((_burnup_old[_qp])),0.55) * std::exp(-115 * std::pow(((_pellet_outer_radius - r)),0.5));
-  ADReal termNeg = -_C*std::pow((_burnup_old[_qp]),2)+_D*_burnup_old[_qp]-1;
+  ADReal term1 = _A * pow(_burnup_old[_qp], 0.55) * exp(-180 * pow((r - _pellet_inner_radius), 0.56));
+  ADReal term2 = _B * pow(_burnup_old[_qp], 0.55) * exp(-115 * pow((_pellet_outer_radius - r), 0.5));
+  ADReal termNeg = -_C * pow(_burnup_old[_qp], 2) + _D * _burnup_old[_qp] - 1;
   return term1 + term2 - termNeg;
 }
 

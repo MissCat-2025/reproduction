@@ -24,6 +24,9 @@ void
 SmallDeformationJ2PlasticityMod::updateState(ADRankTwoTensor & stress,
                                           ADRankTwoTensor & elastic_strain)
 {
+  using MetaPhysicL::sqrt;
+  using std::sqrt;
+
   // 1. 假设没有塑性增量，计算试验状态
   ADReal delta_ep = 0;
   elastic_strain -= _plastic_strain_old[_qp];  // 去掉旧的塑性应变
@@ -31,7 +34,7 @@ SmallDeformationJ2PlasticityMod::updateState(ADRankTwoTensor & stress,
   
   // 2. 计算流动方向 (Prandtl-Reuss流动准则)
   ADRankTwoTensor stress_dev = stress.deviatoric();  // 偏应力
-  ADReal stress_dev_norm = std::sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
+  ADReal stress_dev_norm = sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
   _Np[_qp] = 1.5 * stress_dev / stress_dev_norm;  // 归一化的流动方向
   
   // 3. 检查屈服条件

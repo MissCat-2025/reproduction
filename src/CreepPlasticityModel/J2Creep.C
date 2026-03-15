@@ -69,6 +69,9 @@ J2Creep::setQp(unsigned int qp)
 void
 J2Creep::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elastic_strain)
 {
+  using MetaPhysicL::sqrt;
+  using std::sqrt;
+
  
   // Step 1: 计算弹性试验状态（移除旧的蠕变应变）
   ADRankTwoTensor elastic_trial_strain = elastic_strain;
@@ -80,7 +83,7 @@ J2Creep::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elastic_strain)
 
   // 计算偏应力和有效应力
   ADRankTwoTensor stress_dev = stress_trial.deviatoric();
-  ADReal effective_stress_trial = std::sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
+  ADReal effective_stress_trial = sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
   
   // 计算流动方向
   if (effective_stress_trial > 1e-15 || effective_stress_trial < -1e-15)
@@ -130,7 +133,7 @@ J2Creep::updateState(ADRankTwoTensor & stress, ADRankTwoTensor & elastic_strain)
   
   // 计算当前的有效应力
   stress_dev = stress.deviatoric();
-  ADReal effective_stress = std::sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
+  ADReal effective_stress = sqrt(1.5 * stress_dev.doubleContraction(stress_dev));
   
   // 计算蠕变应变增量
   ADReal delta_ec_total = _ec[_qp] - _ec_old[_qp];

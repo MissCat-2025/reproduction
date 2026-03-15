@@ -49,9 +49,13 @@ ADRimEffertPowerBurnupRod::initQpStatefulProperties()
 ADReal
 ADRimEffertPowerBurnupRod::powerFactor(const Real & r) const
 {
+  using MetaPhysicL::exp;
+  using MetaPhysicL::pow;
+  using std::exp;
+  using std::pow;
+
   const ADReal Bu = _burnup_old[_qp];
-  ADReal term1 =
-      _A * std::pow(Bu, 0.5) * std::exp(_B * std::pow((_pellet_outer_radius - r), 0.51));
+  ADReal term1 = _A * pow(Bu, 0.5) * exp(_B * pow((_pellet_outer_radius - r), 0.51));
   ADReal term2 = (_C * Bu * Bu + _D * Bu) - 0.925;
   return term1 - term2;
 }
