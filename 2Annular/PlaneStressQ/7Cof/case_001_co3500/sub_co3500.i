@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# coolant_heat_transfer_coefficient_out: 3500
+# 生成时间: 2026-03-13 11:10:01
+
 
 [Problem]
   kernel_coverage_check = false
