@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# chmod +x step3_install_raccoon_software.sh
 # RACCOON 安装脚本 - 简化版
 # 功能：检测 -> 下载 -> 编译
 
@@ -16,7 +16,7 @@ NC='\033[0m'
 RACCOON_DIR="/home/yp/projects/raccoon"
 GITHUB_URL="https://github.com/hugary1995/raccoon.git"
 MIRROR_URL="https://gitee.com/mirrors/raccoon.git"
-TIMEOUT=180  # 3分钟超时
+TIMEOUT=1800  # 3分钟超时
 
 # 打印消息
 print_msg() {
