@@ -7,15 +7,15 @@ import subprocess
 import json
 
 # ========= 步骤开关：想跑哪一步就设成 True =========
-RUN_STEP1 = True            # 网格生成（单次）
-RUN_STEP2 = True            # 运行 parameter_studies
+# RUN_STEP1 = True            # 网格生成（单次）
+# RUN_STEP2 = True            # 运行 parameter_studies
 
 # RUN_STEP1_SERIES = True      # 网格生成（series）
 # RUN_STEP2_SERIES = True      # 运行 parameter_studies_series
 
-# RUN_STEP3 = True             # 收敛统计
-# RUN_STEP4 = True             # ParaView 单例版
-# RUN_STEP5 = True             # 时间 + 图片整理
+RUN_STEP3 = True             # 收敛统计
+RUN_STEP4 = True             # ParaView 单例版
+RUN_STEP5 = True             # 时间 + 图片整理
 # RUN_STEP6 = True             # 全时间域标量导出
 
 
@@ -24,7 +24,7 @@ RUN_STEP2 = True            # 运行 parameter_studies
 
 
 # Step1 单次参数矩阵和 Checkpoint 配置
-template_main_name = "Main2.i"
+template_main_name = "MainA2.i"
 template_sub_name = "Sub.i"
 STEP1_PARAM_MATRIX = {
     # "pellet_critical_energy": [2,3,4,5,6],
