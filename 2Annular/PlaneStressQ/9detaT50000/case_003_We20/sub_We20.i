@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# WeibullShape: 20
+# 生成时间: 2026-03-19 14:30:10
+
 
 [Problem]
   kernel_coverage_check = false
@@ -235,14 +239,13 @@ a3 = ${a3}
   []
 []
 [Functions]
-[dt_limit_func]
-  type = ParsedFunction
-  expression = 'if(t < 12000, 2000,
-                 if(t < (${PowMaxTime}*1.2), ${dt},
-                 if(t < (${endTime__100000}-${dtMax}),${dtMax},
-                 if(t < (${endTime__100000}),(4*${dt}),
-                 if(t < (${endTime__50000}+10000), ${dt},10000)))))'
-[]
+  [dt_limit_func]
+    type = ParsedFunction
+    expression = 'if(t < 10000, 2000,
+                  if(t < 110000, ${dt},
+                  if(t < (${endTime__100000}-5000),${dtMax},
+                  if(t < (${endTime__50000}+10000), ${dt},10000))))'
+  []
 []
 [Adaptivity]
   initial_marker = marker

@@ -8,16 +8,15 @@ import json
 
 # ========= 步骤开关：想跑哪一步就设成 True =========
 # RUN_STEP1 = True            # 网格生成（单次）
-# RUN_STEP1_SERIES = True      # 网格生成（series）
-
-
 # RUN_STEP2 = True            # 运行 parameter_studies
+
+# RUN_STEP1_SERIES = True      # 网格生成（series）
 # RUN_STEP2_SERIES = True      # 运行 parameter_studies_series
 
-RUN_STEP3 = True             # 收敛统计
+# RUN_STEP3 = True             # 收敛统计
 RUN_STEP4 = True             # ParaView 单例版
-RUN_STEP5 = True             # 时间 + 图片整理
-RUN_STEP6 = True             # 全时间域标量导出
+# RUN_STEP5 = True             # 时间 + 图片整理
+# RUN_STEP6 = True             # 全时间域标量导出
 
 
 # RUN_STEP4_SERIES = True      # ParaView series 版
@@ -28,13 +27,17 @@ RUN_STEP6 = True             # 全时间域标量导出
 template_main_name = "Main.i"
 template_sub_name = "Sub.i"
 STEP1_PARAM_MATRIX = {
-    # "pellet_critical_energy": [3,4,5],
-    "pellet_critical_fracture_strength": [80e6,1E8],
-    "WeibullShape": [50,30,10,9.1],
+    # "pellet_critical_energy": [1,2,3,4,5,6],
+    # "pellet_critical_fracture_strength": [60e6,70e6,80e6],
+    # "CGc": [0.003,0.0035,0.004],
     # "PressureFactor": [0,1e6, 2e6, 3e6, 4e6, 5e6, 6e6],
     # "degradation_factor": [1e-9,1e-8,1e-7,1e-6,1e-5],
-    # "PowerTime": [30,60,120,480],
+    "PowerTime": [1e0,1e-1],
     # "WeibullSeed": [1,2,3,4]
+    # "coolant_heat_transfer_coefficient_out": [2500,3000,3500]
+    # "Ndt": [50,100,200,300,400],
+    # "length_scale_paramete": [7e-5,6e-5,5e-5,4e-5,3e-5]
+    # "largestPoreSize0":[20,30,40,50]
 }
 
 # Step1 series 参数矩阵
@@ -57,7 +60,7 @@ STEP1_CHECKPOINT_CONFIG = '''
 # =========================== Step2 ============================
 
 
-MPI_PROCESSES = 12
+MPI_PROCESSES = 15
 
 
 # =========================== Step3 ============================
@@ -69,10 +72,10 @@ STEP3_STUDIES_SUBDIR = "parameter_studies"
 
 
 # ParaView 字段和图像参数
-PV_SINGLE_STUDIES_SUBDIR = "parameter_studies"  #要分析的路径 例如 "post_results"
+PV_SINGLE_STUDIES_SUBDIR = "s7"  #要分析的路径 例如 "post_results"
 
 # PV_FIELDS_SINGLE = "d:相场变量,hoop_stress:环向应力,radial_stress:径向应力"
-PV_FIELDS_SINGLE = "d:相场变量,sigma0_field:断裂强度,effective_creep_strain:有效蠕变应变"
+PV_FIELDS_SINGLE = "d:相场变量"
 
 # PV_FIELDS_SERIES = "d:相场变量,hoop_stress:环向应力,sigma0:断裂强度"
 PV_IMAGE_SIZE = "1083,1083"
@@ -83,7 +86,7 @@ PV_IMAGE_SIZE = "1083,1083"
 # Step5 时间/图片整理目标子目录（相对于工程目录），为空则默认用 parameter_studies_series
 STEP5_STUDIES_SUBDIR = PV_SINGLE_STUDIES_SUBDIR
 # ParaView / 拼图使用的目标时间（秒）
-TARGET_TIMES = [610,630,660,720]
+TARGET_TIMES = [50000,200000,2e7]
 # 时间拼图字体和布局参数
 TIME_TITLE_FONT_SIZE = 72
 TIME_LABEL_FONT_SIZE = 28
@@ -104,10 +107,10 @@ PROJECT_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MOOSE_APP = "/home/yp/projects/reproduction/reproduction-opt"
 
 
-STUDIES_DIR_NAME = "parameter_studies"
+STUDIES_DIR_NAME = "s7"
 STUDIES_SERIES_DIR_NAME = "parameter_studies_series"
 
-PV_OUTPUT_DIR_SINGLE = "post_results"
+PV_OUTPUT_DIR_SINGLE = "s7"
 PV_OUTPUT_DIR_SERIES = "parameter_studies_series"
 
 

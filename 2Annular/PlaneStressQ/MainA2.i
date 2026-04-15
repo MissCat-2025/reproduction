@@ -19,7 +19,7 @@ Ndt = 200
 dt = '${fparse PowMaxTime/Ndt}'
 dtMax = 50000
 endTime__50000 = '${fparse endTime-50000}'
-endTime__100000 = '${fparse endTime-150000}'
+endTime__100000 = '${fparse endTime-100000}'
 # Pressure1 = 1.4e6#1.1bar
 # Pressure2 = 2.0e6#10e6
 pellet_nu = 0.345
@@ -105,7 +105,7 @@ ksi = 2
   [fracture]
     type = TransientMultiApp
     input_files = 'sub_fi1_60e+19_la58_pe2_8.i'
-    cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};endTime=${endTime};dt=${dt};pellet_inner_diameter=${pellet_inner_diameter};pellet_outer_diameter=${pellet_outer_diameter};dtMax=${dtMax}'
+    cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};endTime=${endTime};dt=${dt};pellet_inner_diameter=${pellet_inner_diameter};pellet_outer_diameter=${pellet_outer_diameter};dtMax=${dtMax};PowMaxTime=${PowMaxTime}'
     execute_on = 'TIMESTEP_END'
         # 强制同步参数
         sub_cycling = false          # 禁止子循环
@@ -671,8 +671,9 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   type = ParsedFunction
   expression = 'if(t < 12000, 2000,
                  if(t < (${PowMaxTime}*1.2), ${dt},
-                 if(t < (${endTime__100000}-5000),${dtMax},
-                 if(t < (${endTime__50000}+10000), ${dt},10000))))'
+                 if(t < (${endTime__100000}-${dtMax}),${dtMax},
+                 if(t < (${endTime__100000}),(4*${dt}),
+                 if(t < (${endTime__50000}+10000), ${dt},10000)))))'
 []
 []
 
