@@ -158,8 +158,8 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
     expression = (1-d)^p/((1-d)^p+a1*d*(1+a2*d+a3*d^2))
     phase_field = d
     material_property_names = 'a1'
-    parameter_names = 'p a2 a3'
-    parameter_values = '2 -0.5 0'
+    parameter_names = 'p a2 a3 eta'
+    parameter_values = '2 -0.5 0 1e-6'
   []
   
   [eigenstrain]
@@ -175,11 +175,11 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
     eigenstrain_names = thermal_eigenstrain
   []
   [elasticity]
-    type = SmallDeformationHBasedElasticity
+    type = SmallDeformationH
     youngs_modulus = E
     poissons_ratio = nu
     tensile_strength = ft
-    fracture_energy = Gc
+    # fracture_energy = Gc
     phase_field = d
     degradation_function = g
     output_properties = 'psie_active psie'
@@ -196,28 +196,28 @@ a1 = '${fparse 4*E_ceramic*Gc/ft/ft/3.14159/l}'
     expression = 'alpha*Gc/c0/l+psie'
     coupled_variables = 'd'
     material_property_names = 'alpha(d) Gc c0 l psie(d)'
-    derivative_order = 1
+    # derivative_order = 2
   []
 []
 
 [Executioner]
   type = Transient
-  
+  # solve_type = 'PJFNK'
+  # petsc_options = '-snes_ksp_ew'
+  # petsc_options_iname = '-pc_type -pc_factor_mat_solver_package -ksp_gmres_restart'
+  # petsc_options_value = 'lu       superlu_dist                  51'
   solve_type = 'NEWTON'
-  petsc_options_iname = '-pc_type   -snes_type        -snes_qn_type   -snes_qn_scale_type' 
-  petsc_options_value = 'lu         qn               lbfgs           jacobian'
-  automatic_scaling = true
-  
-  nl_rel_tol = 1e-7
-  nl_abs_tol = 1e-8
+  petsc_options_iname = '-pc_type -snes_type        -snes_qn_type   -snes_qn_scale_type' 
+  petsc_options_value = 'lu qn               lbfgs           jacobian'
+  # automatic_scaling = true # 启用自动缩放功能，有助于改善病态问题的收敛性
+  # compute_scaling_once = true  # 每个时间步都重新计算缩放
+  nl_rel_tol = 1e-4
+  nl_abs_tol = 1e-5
   
   # 时间步长设置
   dt = 0.1e-3  # 小的时间步长以捕捉快速的温度变化
   end_time = 200e-3  # 总模拟时间
-  fixed_point_max_its = 4
-  fixed_point_rel_tol = 1e-5
-  fixed_point_abs_tol = 1e-6
-  accept_on_max_fixed_point_iteration = true
+  # accept_on_max_fixed_point_iteration = true
 []
 
 [Outputs]

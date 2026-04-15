@@ -18,11 +18,11 @@ density_percent = 0.95
 # Gc = 6#断裂能
 # fission_rate = 1.2e19
 # grain_size =10
-pellet_critical_energy = 10# 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
+pellet_critical_energy = 5# 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
 pellet_density='${fparse density_percent*10980}'#10431.0*0.85#kg⋅m-3理论密度为10.980
 #几何与网格参数
 # density_percent100 = '${fparse density_percent*100}'
-length_scale_paramete = 4e-5
+length_scale_paramete = 5e-5
 
 w = 0 #裂纹尖端时，l是mesh_size的2**w倍
 mesh_size = '${fparse 2*6e-5}' #网格尺寸即可
@@ -451,7 +451,7 @@ ksi = 2
     expression = 'ksi*d+(1-ksi)*d*d'
     constant_names = 'ksi'
     constant_expressions = '${ksi}'
-    derivative_order = 1
+    # derivative_order = 1
   []
   [a1]
     type = ParsedMaterial
@@ -478,7 +478,7 @@ ksi = 2
     expression = (1-d)^p/((1-d)^p+a1*d*(1+a2*d+a3*d^2))*(1-eta)+eta
     constant_names = 'p a2 a3 eta'
     constant_expressions = '${m} ${a2} ${a3} 1e-6'
-    derivative_order = 1
+    # derivative_order = 1
 
   []
     [Elasticity]
@@ -572,11 +572,11 @@ ksi = 2
   # petsc_options_iname = '-pc_type -pc_factor_mat_solver_package'
   # petsc_options_value = 'lu superlu_dist'52000
 #=================================================
-  solve_type = 'PJFNK'
+  # solve_type = 'PJFNK'
   # petsc_options_iname = '-pc_type -pc_factor_mat_solver_package -ksp_type'
   # petsc_options_value = 'lu superlu_dist gmres'
   #=================================================
-  # solve_type = 'NEWTON'
+  solve_type = 'NEWTON'
   # petsc_options_iname = '-pc_type' 
   # petsc_options_value = 'lu'# 60000
   # petsc_options_iname = '-pc_type -ksp_gmres_restart -sub_pc_type -sub_pc_factor_shift_type'
@@ -602,8 +602,8 @@ ksi = 2
   automatic_scaling = true # 启用自动缩放功能，有助于改善病态问题的收敛性
   compute_scaling_once = true
   nl_max_its = 200
-  nl_rel_tol = 1e-3
-  nl_abs_tol = 1e-4
+  nl_rel_tol = 1e-4
+  nl_abs_tol = 1e-5
   dtmin = ${dtmin}
   dt = ${dt}
   end_time = ${endTime}

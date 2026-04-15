@@ -154,7 +154,7 @@ a3 = ${a3}
     phase_field = d
     material_property_names = 'a1'
     parameter_names = 'p a2 a3 eta'
-    parameter_values = '${m} ${a2} ${a3} 1e-3'
+    parameter_values = '${m} ${a2} ${a3} 1e-6'
   []
   [psi]
     type = ADDerivativeParsedMaterial
