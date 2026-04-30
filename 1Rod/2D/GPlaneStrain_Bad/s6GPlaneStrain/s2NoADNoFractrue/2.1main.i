@@ -63,7 +63,6 @@ power_factor = '${fparse 1000*1/3.1415926/pellet_outer_radius/pellet_outer_radiu
     input = pellet_clad_gap
     old_boundary = 'bottom left outer'
     new_boundary = 'yplane xplane pellet_outer' # 将边界命名为yplane xplane clad_outer
-
   []
   [rename2]
     type = RenameBlockGenerator

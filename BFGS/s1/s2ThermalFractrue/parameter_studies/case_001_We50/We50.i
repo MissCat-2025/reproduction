@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# WeibullShape: 50
+# 生成时间: 2026-03-17 16:10:54
+
 #This input uses PhaseField-Nonconserved Action to add phase field fracture bulk rate kernels
 #弹性
 E = 200e9
@@ -403,6 +407,7 @@ power_factor = '${fparse LinearPower*1000*1/3.1415926/pellet_outer_radius/pellet
   []
 []
 [Outputs]
+ 
   exodus = true
   file_base = 'Output/C_1'
 []

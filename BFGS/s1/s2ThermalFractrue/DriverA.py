@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Utils 总控入口：
-- 统一配置参数研究生成、运行、后处理与汇总。
-- 通过 RUN_STEPx 组合实现一键流水线或单独步骤执行。
-- 依赖的公共环境变量在 main() 中集中注入。
-"""
 
 import os
 import sys
@@ -14,16 +8,16 @@ import json
 
 # ========= 步骤开关：想跑哪一步就设成 True =========
 # RUN_STEP1 = True            # 网格生成（单次）
-# RUN_STEP1_SERIES = True      # 网格生成（series）
-
-
 # RUN_STEP2 = True            # 运行 parameter_studies
+
+# RUN_STEP1_SERIES = True      # 网格生成（series）
 # RUN_STEP2_SERIES = True      # 运行 parameter_studies_series
 
-RUN_STEP3 = True             # 收敛统计
-RUN_STEP4 = True             # ParaView 单例版
-RUN_STEP5 = True             # 时间 + 图片整理
-RUN_STEP6 = True             # 全时间域标量导出
+# RUN_STEP3 = True             # 收敛统计
+# RUN_STEP4 = True             # ParaView 单例版
+# RUN_STEP5 = True             # 时间 + 图片整理
+# RUN_STEP6 = True             # 全时间域标量导出
+RUN_STEP7 = True             # 特定时刻全网点数据导出
 
 
 # RUN_STEP4_SERIES = True      # ParaView series 版
@@ -31,14 +25,19 @@ RUN_STEP6 = True             # 全时间域标量导出
 
 
 # Step1 单次参数矩阵和 Checkpoint 配置
-template_main_name = "Main.i"
-template_sub_name = "Sub.i"
+template_main_name = "s1.i"
+template_sub_name = "s1.i"
 STEP1_PARAM_MATRIX = {
-    "pellet_critical_energy": [3,4,5],
+    # "pellet_critical_energy": [4,],
+    # "pellet_critical_fracture_strength": [60e6,70e6,80e6],
+    "WeibullShape": [50,30,20,10],
     # "PressureFactor": [0,1e6, 2e6, 3e6, 4e6, 5e6, 6e6],
     # "degradation_factor": [1e-9,1e-8,1e-7,1e-6,1e-5],
-    "PowerTime": [30,60,120,480],
-    "WeibullSeed": [1,2,3,4]
+    # "PowerTime": [30,60,120,480],
+    # "WeibullSeed": [1,2,3,4]
+    # "coolant_heat_transfer_coefficient_out": [2500,3000,3500]
+    # "Ndt": [50,100,200,300,400],
+    # "length_scale_paramete": [7e-5,6e-5,5e-5,4e-5,3e-5]
 }
 
 # Step1 series 参数矩阵
@@ -61,7 +60,7 @@ STEP1_CHECKPOINT_CONFIG = '''
 # =========================== Step2 ============================
 
 
-MPI_PROCESSES = 12
+MPI_PROCESSES = 15
 
 
 # =========================== Step3 ============================
@@ -76,7 +75,7 @@ STEP3_STUDIES_SUBDIR = "parameter_studies"
 PV_SINGLE_STUDIES_SUBDIR = "parameter_studies"  #要分析的路径 例如 "post_results"
 
 # PV_FIELDS_SINGLE = "d:相场变量,hoop_stress:环向应力,radial_stress:径向应力"
-PV_FIELDS_SINGLE = "d:相场变量,strain_energy_density:应变能量密度,grad_T_mag:温度梯度范数"
+PV_FIELDS_SINGLE = "sigma0_field:断裂强度"
 
 # PV_FIELDS_SERIES = "d:相场变量,hoop_stress:环向应力,sigma0:断裂强度"
 PV_IMAGE_SIZE = "1083,1083"
@@ -87,7 +86,14 @@ PV_IMAGE_SIZE = "1083,1083"
 # Step5 时间/图片整理目标子目录（相对于工程目录），为空则默认用 parameter_studies_series
 STEP5_STUDIES_SUBDIR = PV_SINGLE_STUDIES_SUBDIR
 # ParaView / 拼图使用的目标时间（秒）
-TARGET_TIMES = [605,610,630,660,720,1080,2520]
+TARGET_TIMES = [50000,200000,2e7]
+
+# =========================== Step7 ============================
+
+# Step7 导出的时刻和网格点场变量数据
+DATA_TIMES = [0.1]
+DATA_FIELDS = "sigma0_field:断裂强度"
+DATA_N = 100
 # 时间拼图字体和布局参数
 TIME_TITLE_FONT_SIZE = 72
 TIME_LABEL_FONT_SIZE = 28
@@ -124,7 +130,6 @@ def _step_enabled(name: str, default: bool = False) -> bool:
 
 
 def run_step(title, cmd, cwd, env):
-    # 统一的步骤执行与失败退出逻辑
     print("\n" + "=" * 60)
     print(title)
     print("=" * 60)
@@ -157,6 +162,12 @@ def main():
     env["TIME_TITLE_HEIGHT"] = str(TIME_TITLE_HEIGHT)
     env["TIME_AXIS_HEIGHT"] = str(TIME_AXIS_HEIGHT)
     env["TIME_ROW_AXIS_HEIGHT"] = str(TIME_ROW_AXIS_HEIGHT)
+
+    # 统一的数据导出参数（Step 7）
+    if "DATA_TIMES" in globals():
+        env["DATA_TARGET_TIMES"] = ",".join(str(t) for t in DATA_TIMES)
+    if "DATA_FIELDS" in globals():
+        env["DATA_FIELDS"] = DATA_FIELDS
 
     # ===== Step 1: 生成参数研究案例 =====
     if _step_enabled("RUN_STEP1"):
@@ -248,6 +259,16 @@ def main():
         env["PV_PYTHON_SCRIPT"] = os.path.join(UTILS_DIR, "step6_export_timeseries.py")
         pv_single = os.path.join(UTILS_DIR, "run_paraview.sh")
         run_step("Step 6 导出全时间域标量CSV",
+                 ["bash", pv_single],
+                 cwd=UTILS_DIR, env=env)
+
+    # ===== Step 7: 导出特定时刻全网格点数据 =====
+    if _step_enabled("RUN_STEP7"):
+        studies_subdir = PV_SINGLE_STUDIES_SUBDIR if PV_SINGLE_STUDIES_SUBDIR else STUDIES_DIR_NAME
+        env["STUDIES_SUBDIR"] = studies_subdir
+        env["PV_PYTHON_SCRIPT"] = os.path.join(UTILS_DIR, "step7_export_mesh_data.py")
+        pv_single = os.path.join(UTILS_DIR, "run_paraview.sh")
+        run_step("Step 7 导出特定时刻全网格点数据",
                  ["bash", pv_single],
                  cwd=UTILS_DIR, env=env)
 

@@ -34,19 +34,19 @@ fi
 
 if [ "$ENV_EXISTS" -eq 0 ]; then
     echo "创建新环境: $ENV_NAME..."
-    conda create -y -n "$ENV_NAME" python=3.10
+    conda create -y -n "$ENV_NAME" python
     conda activate "$ENV_NAME"
     
     # 使用mamba加速安装
     conda install -y -c conda-forge mamba
     mamba install -y -c conda-forge \
-        paraview=5.11.1 \
-        vtk=9.2.5 \
-        numpy=1.24.4 \
-        matplotlib=3.7.1 \
-        h5py=3.9.0 \
-        pandas=1.5.3 \
-        scipy=1.10.1
+        paraview \
+        vtk \
+        numpy \
+        matplotlib \
+        h5py \
+        pandas \
+        scipy
         
     echo "环境创建完成"
 else

@@ -168,8 +168,6 @@ def main():
         env["DATA_TARGET_TIMES"] = ",".join(str(t) for t in DATA_TIMES)
     if "DATA_FIELDS" in globals():
         env["DATA_FIELDS"] = DATA_FIELDS
-    if "DATA_N" in globals():
-        env["DATA_N"] = str(DATA_N)
 
     # ===== Step 1: 生成参数研究案例 =====
     if _step_enabled("RUN_STEP1"):
