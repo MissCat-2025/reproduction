@@ -1,3 +1,8 @@
+# === 参数研究案例 ===
+# end_time = 1.05e+5
+# pellet_critical_energy: 5
+# 生成时间: 2026-04-30 21:13:33
+
 
 [Problem]
   kernel_coverage_check = false
