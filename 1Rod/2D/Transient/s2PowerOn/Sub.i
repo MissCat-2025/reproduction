@@ -185,10 +185,10 @@ a3 = ${a3}
   # reuse_preconditioner = true
   # reuse_preconditioner_max_linear_its = 20
   nl_max_its = 200
-  nl_rel_tol = 5e-9 # 非线性求解的相对容差
-  nl_abs_tol = 5e-10 # 非线性求解的绝对容差
-  l_tol = 5e-9  # 线性求解的容差
-  l_abs_tol = 5e-10 # 线性求解的绝对容差
+  nl_rel_tol = 1e-10 # 非线性求解的相对容差
+  nl_abs_tol = 1e-10 # 非线性求解的绝对容差
+  l_tol = 1e-10  # 线性求解的容差
+  l_abs_tol = 1e-10 # 线性求解的绝对容差
   l_max_its = 100 # 线性求解的最大迭代次数
   abort_on_solve_fail = true
   dtmin = ${dtmin}
@@ -207,7 +207,7 @@ a3 = ${a3}
     type = ParsedFunction
     expression = 'if(t < ${xTime}, 100,
                   if(t < (${PowerTimeTotal}),${dt1},
-                  if(t < ${endTime},0.025,${dt1})))'
+                  if(t < ${endTime},(10*${dt1}),${dt1})))'
   []
 []
 [Adaptivity]

@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# WeibullShape: 50
+# 生成时间: 2026-03-19 19:05:53
+
 
 [Problem]
   kernel_coverage_check = false

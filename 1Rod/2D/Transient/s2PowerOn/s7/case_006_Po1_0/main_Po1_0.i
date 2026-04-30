@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# PowerTime: 1.0
+# 生成时间: 2026-04-01 20:58:43
+
 
 
 
@@ -12,7 +16,7 @@ x = 5  # 功率从0%增加到x%
 xTime = '${fparse x*120}'  #s 功率从0%增加到x%的时间,假设正常工况下的温升，即2400s升到20%
 LinearPower0 =  '${fparse LinearPowerAll*x*0.01}'  
 #第二个节点：功率突升的结束时的节点
-PowerTime = 60  #s 功率从x%增加到100%的时间
+PowerTime = 1.0  #s 功率从x%增加到100%的时间
 PowerTimeTotal = '${fparse xTime+PowerTime}'  #s 功率从0%增加到100%的时间
 #第二个节点：观察结束时的节点
 WatchTime = 40   #s 功率上升后的观察时间(一般以裂纹稳定后为准)
@@ -86,7 +90,7 @@ ksi = 2
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = 'Sub.i'
+    input_files = 'sub_Po1_0.i'
     cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};Gc=${pellet_critical_energy};sigma0=${pellet_critical_fracture_strength};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};pellet_outer_radius=${pellet_outer_radius};xTime=${xTime};endTime=${endTime};dtmin=${dtmin};dt1=${dt1};PowerTimeTotal=${PowerTimeTotal}'
     execute_on = 'TIMESTEP_END'
         # 强制同步参数
@@ -595,6 +599,7 @@ ksi = 2
   []
 []
 [Outputs]
+ 
   exodus = true #表示输出exodus格式文件
   print_linear_residuals = false
   hide = 'grad_T_vec grad_T_mag_x grad_T_mag_y'

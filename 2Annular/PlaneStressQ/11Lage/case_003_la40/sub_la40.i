@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# largestPoreSize0: 40
+# 生成时间: 2026-03-21 10:21:05
+
 
 [Problem]
   kernel_coverage_check = false

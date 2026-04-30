@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 激活 MOOSE 运行环境，并把参数转给 Python 脚本
-source $(conda info --base)/etc/profile.d/conda.sh
+source /home/yp/miniforge/etc/profile.d/conda.sh
 conda activate moose
 
 # 双重确认当前环境名称

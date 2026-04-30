@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# CGc: 0.0035
+# 生成时间: 2026-03-20 17:23:50
+
 
 [Problem]
   kernel_coverage_check = false

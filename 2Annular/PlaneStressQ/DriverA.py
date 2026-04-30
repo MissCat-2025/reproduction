@@ -7,8 +7,8 @@ import subprocess
 import json
 
 # ========= 步骤开关：想跑哪一步就设成 True =========
-# RUN_STEP1 = True            # 网格生成（单次）
-# RUN_STEP2 = True            # 运行 parameter_studies
+RUN_STEP1 = True            # 网格生成（单次）
+RUN_STEP2 = True            # 运行 parameter_studies
 
 # RUN_STEP1_SERIES = True      # 网格生成（series）
 # RUN_STEP2_SERIES = True      # 运行 parameter_studies_series
@@ -25,19 +25,20 @@ RUN_STEP7 = True             # 特定时刻全网点数据导出
 
 
 # Step1 单次参数矩阵和 Checkpoint 配置
-template_main_name = "MainA2.i"
+template_main_name = "MainA3.i"
 template_sub_name = "Sub.i"
 STEP1_PARAM_MATRIX = {
-    # "pellet_critical_energy": [2,3,4,5,6],
+    "pellet_critical_energy": [1,2,3,4,5,6],
     # "pellet_critical_fracture_strength": [60e6,70e6,80e6],
-    # "WeibullShape": [50,30,20,10],
+    # "CGc": [0.003,0.0035,0.004],
     # "PressureFactor": [0,1e6, 2e6, 3e6, 4e6, 5e6, 6e6],
     # "degradation_factor": [1e-9,1e-8,1e-7,1e-6,1e-5],
     # "PowerTime": [30,60,120,480],
     # "WeibullSeed": [1,2,3,4]
-    "coolant_heat_transfer_coefficient_out": [2500,3000,3500]
+    # "coolant_heat_transfer_coefficient_out": [2500,3000,3500]
     # "Ndt": [50,100,200,300,400],
     # "length_scale_paramete": [7e-5,6e-5,5e-5,4e-5,3e-5]
+    # "largestPoreSize0":[20,30,40,50]
 }
 
 # Step1 series 参数矩阵
@@ -75,7 +76,7 @@ STEP3_STUDIES_SUBDIR = "parameter_studies"
 PV_SINGLE_STUDIES_SUBDIR = "parameter_studies"  #要分析的路径 例如 "post_results"
 
 # PV_FIELDS_SINGLE = "d:相场变量,hoop_stress:环向应力,radial_stress:径向应力"
-PV_FIELDS_SINGLE = "d:相场变量,sigma0:断裂强度,T:T"
+PV_FIELDS_SINGLE = "d:相场变量,sigma0:断裂强度,Gc:Gc"
 
 # PV_FIELDS_SERIES = "d:相场变量,hoop_stress:环向应力,sigma0:断裂强度"
 PV_IMAGE_SIZE = "1083,1083"
