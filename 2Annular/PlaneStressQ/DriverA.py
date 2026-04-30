@@ -13,10 +13,10 @@ RUN_STEP2 = True            # 运行 parameter_studies
 # RUN_STEP1_SERIES = True      # 网格生成（series）
 # RUN_STEP2_SERIES = True      # 运行 parameter_studies_series
 
-RUN_STEP3 = True             # 收敛统计
-RUN_STEP4 = True             # ParaView 单例版
-RUN_STEP5 = True             # 时间 + 图片整理
-RUN_STEP6 = True             # 全时间域标量导出
+# RUN_STEP3 = True             # 收敛统计
+# RUN_STEP4 = True             # ParaView 单例版
+# RUN_STEP5 = True             # 时间 + 图片整理
+# RUN_STEP6 = True             # 全时间域标量导出
 
 
 # RUN_STEP4_SERIES = True      # ParaView series 版
@@ -88,6 +88,13 @@ PV_IMAGE_SIZE = "1083,1083"
 STEP5_STUDIES_SUBDIR = PV_SINGLE_STUDIES_SUBDIR
 # ParaView / 拼图使用的目标时间（秒）
 TARGET_TIMES = [50000,200000,2e7]
+
+# =========================== Step7 ============================
+
+# Step7 导出的时刻和网格点场变量数据
+DATA_TIMES = [50000, 200000, 2e7]
+DATA_FIELDS = "sigma0:断裂强度"
+
 # 时间拼图字体和布局参数
 TIME_TITLE_FONT_SIZE = 72
 TIME_LABEL_FONT_SIZE = 28
@@ -156,6 +163,14 @@ def main():
     env["TIME_TITLE_HEIGHT"] = str(TIME_TITLE_HEIGHT)
     env["TIME_AXIS_HEIGHT"] = str(TIME_AXIS_HEIGHT)
     env["TIME_ROW_AXIS_HEIGHT"] = str(TIME_ROW_AXIS_HEIGHT)
+
+    # 统一的数据导出参数（Step 7）
+    if "DATA_TIMES" in globals():
+        env["DATA_TARGET_TIMES"] = ",".join(str(t) for t in DATA_TIMES)
+    if "DATA_FIELDS" in globals():
+        env["DATA_FIELDS"] = DATA_FIELDS
+    if "DATA_N" in globals():
+        env["DATA_N"] = str(DATA_N)
 
     # ===== Step 1: 生成参数研究案例 =====
     if _step_enabled("RUN_STEP1"):
@@ -247,6 +262,16 @@ def main():
         env["PV_PYTHON_SCRIPT"] = os.path.join(UTILS_DIR, "step6_export_timeseries.py")
         pv_single = os.path.join(UTILS_DIR, "run_paraview.sh")
         run_step("Step 6 导出全时间域标量CSV",
+                 ["bash", pv_single],
+                 cwd=UTILS_DIR, env=env)
+
+    # ===== Step 7: 导出特定时刻全网格点数据 =====
+    if _step_enabled("RUN_STEP7"):
+        studies_subdir = PV_SINGLE_STUDIES_SUBDIR if PV_SINGLE_STUDIES_SUBDIR else STUDIES_DIR_NAME
+        env["STUDIES_SUBDIR"] = studies_subdir
+        env["PV_PYTHON_SCRIPT"] = os.path.join(UTILS_DIR, "step7_export_mesh_data.py")
+        pv_single = os.path.join(UTILS_DIR, "run_paraview.sh")
+        run_step("Step 7 导出特定时刻全网格点数据",
                  ["bash", pv_single],
                  cwd=UTILS_DIR, env=env)
 
