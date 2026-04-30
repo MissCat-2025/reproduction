@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# LinearPower: 100
+# 生成时间: 2026-04-28 10:29:06
+
 # conda activate moose && dos2unix main_fi4_00e+19.i&& dos2unix sub_fi4_00e+19.i &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i main_fi4_00e+19.i --recover
 # conda activate moose && mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i Main.i --mesh-only
 
@@ -6,7 +10,7 @@ initial_T_in = 570.7
 initial_T_out = 582.8
 coolant_heat_transfer_coefficient_in = 4567
 coolant_heat_transfer_coefficient_out = 8000
-LinearPower = 90
+LinearPower = 100
 
 Power0_2Time = '${fparse 2400}'
 PowMaxTime = 98400
@@ -107,7 +111,7 @@ ksi = 2
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = 'sub_fi1_60e+19_la58_pe2_8.i'
+    input_files = 'sub_Li100.i'
     cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};endTime=${endTime};dt=${dt};pellet_inner_diameter=${pellet_inner_diameter};pellet_outer_diameter=${pellet_outer_diameter};dtMax=${dtMax};PowMaxTime=${PowMaxTime}'
     execute_on = 'TIMESTEP_END'
         # 强制同步参数
@@ -801,6 +805,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   []
 []
 [Outputs]
+ 
   exodus = true #表示输出exodus格式文件
   print_linear_residuals = false
   hide = 'pellet_area'

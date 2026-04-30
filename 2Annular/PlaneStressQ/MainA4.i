@@ -1,6 +1,6 @@
 # conda activate moose && dos2unix main_fi4_00e+19.i&& dos2unix sub_fi4_00e+19.i &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i main_fi4_00e+19.i --recover
 # conda activate moose && mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i Main.i --mesh-only
-
+#A4的最重要不一致是假设Lc是定值，Gc跟着E与ft变化/
 initial_T = 293.15
 initial_T_in = 570.7
 initial_T_out = 582.8

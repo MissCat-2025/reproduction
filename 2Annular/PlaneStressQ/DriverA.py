@@ -13,10 +13,10 @@ RUN_STEP2 = True            # 运行 parameter_studies
 # RUN_STEP1_SERIES = True      # 网格生成（series）
 # RUN_STEP2_SERIES = True      # 运行 parameter_studies_series
 
-# RUN_STEP3 = True             # 收敛统计
-# RUN_STEP4 = True             # ParaView 单例版
-# RUN_STEP5 = True             # 时间 + 图片整理
-# RUN_STEP6 = True             # 全时间域标量导出
+RUN_STEP3 = True             # 收敛统计
+RUN_STEP4 = True             # ParaView 单例版
+RUN_STEP5 = True             # 时间 + 图片整理
+RUN_STEP6 = True             # 全时间域标量导出
 
 
 # RUN_STEP4_SERIES = True      # ParaView series 版
@@ -27,7 +27,7 @@ RUN_STEP2 = True            # 运行 parameter_studies
 template_main_name = "MainA3.i"
 template_sub_name = "Sub.i"
 STEP1_PARAM_MATRIX = {
-    "pellet_critical_energy": [1,2,3,4,5,6],
+    # "pellet_critical_energy": [1,2,3,4,5,6],
     # "pellet_critical_fracture_strength": [60e6,70e6,80e6],
     # "CGc": [0.003,0.0035,0.004],
     # "PressureFactor": [0,1e6, 2e6, 3e6, 4e6, 5e6, 6e6],
@@ -38,6 +38,7 @@ STEP1_PARAM_MATRIX = {
     # "Ndt": [50,100,200,300,400],
     # "length_scale_paramete": [7e-5,6e-5,5e-5,4e-5,3e-5]
     # "largestPoreSize0":[20,30,40,50]
+    "LinearPower":[100,85,70,55,40,25,10]
 }
 
 # Step1 series 参数矩阵
@@ -60,7 +61,7 @@ STEP1_CHECKPOINT_CONFIG = '''
 # =========================== Step2 ============================
 
 
-MPI_PROCESSES = 15
+MPI_PROCESSES = 12
 
 
 # =========================== Step3 ============================
