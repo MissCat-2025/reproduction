@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# fission_rate: 1.20e+19
+# 生成时间: 2026-05-01 08:29:16
+
 
 [Problem]
   kernel_coverage_check = false

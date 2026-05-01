@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# fission_rate: 3.60e+19
+# 生成时间: 2026-05-01 08:29:16
+
 # conda activate moose && dos2unix main_fi4_00e+19.i&& dos2unix sub_fi4_00e+19.i &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i main_fi4_00e+19.i --recover
 # conda activate moose && mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i Main.i --mesh-only
 #A4的最重要不一致是假设Lc是定值，Gc跟着E与ft变化/
@@ -26,7 +30,7 @@ pellet_nu = 0.345
 pellet_thermal_expansion_coef=1e-5#K-1
 density_percent = 0.95
 # Gc = 6#断裂能
-fission_rate = 2.00e+19
+fission_rate = 3.60e+19
 grain_size =10
 pellet_critical_energy = 5
 # pellet_critical_fracture_strength=6e7#Pa
@@ -116,7 +120,7 @@ ksi = 2
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = 'sub_fi1_60e+19_la58_pe2_8.i'
+    input_files = 'sub_fi3_60e+19.i'
     cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};endTime=${endTime};dt=${dt};pellet_inner_diameter=${pellet_inner_diameter};pellet_outer_diameter=${pellet_outer_diameter};dtMax=${dtMax};PowMaxTime=${PowMaxTime}'
     execute_on = 'TIMESTEP_END'
         # 强制同步参数
@@ -810,6 +814,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   []
 []
 [Outputs]
+ 
   exodus = true #表示输出exodus格式文件
   print_linear_residuals = false
   hide = 'pellet_area'
