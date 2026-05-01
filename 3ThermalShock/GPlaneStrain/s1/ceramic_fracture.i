@@ -17,14 +17,14 @@ T_initial_condition = 573.15
 # 断裂参数
 Gc0 = 42.47               # 断裂能 (J/m^2)
 # Gc=${fparse (1+grid_sizes/2/length_scale_paramete)*Gc0}
-l = 0.07e-3 #裂纹附近加密4倍)                # 相场正则化长度 (m)
+l = 0.075e-3 #裂纹附近加密4倍)                # 相场正则化长度 (m)
 nh = 2 # 加密次数
 nx = '${fparse int(25e-3/(nh*nh*l/3))}'
 ny = '${fparse int(5e-3/(nh*nh*l/3))}'
 ft = 180e6                # 抗拉强度 (Pa)
 Gc=${fparse (1+1/6)*Gc0}
-m = 4
-a2 = 0.5396842
+m = 2
+a2 = -0.5
 a3 = 0
 ksi = 2
 [Mesh]
@@ -253,11 +253,11 @@ ksi = 2
       phase_field = d
       degradation_function = g
       kinematic_assumption = PLANE_STRAIN 
-      decomposition = NONE#NONE #SPECTRAL
+      decomposition = VOLDEV#NONE #SPECTRAL
       use_threshold = true
       use_history_max = true
       tensile_strength = sigma0
-      degrade_out_of_plane_strain = false # 关键修改：防止 GPS 奇异性
+      degrade_out_of_plane_strain = true # 关键修改：防止 GPS 奇异性
       
       output_properties = 'psie_active'
       outputs = exodus 
@@ -271,8 +271,12 @@ ksi = 2
   type = Transient
   
   solve_type = 'NEWTON'
-  petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type'
-  petsc_options_value = '201                hypre    boomeramg'
+  # petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type'
+  # petsc_options_value = '201                hypre    boomeramg'
+
+  petsc_options = '-snes_ksp_ew'
+  petsc_options_iname = '-pc_type -pc_factor_mat_solver_package -ksp_gmres_restart'
+  petsc_options_value = 'lu       superlu_dist                  51'
   automatic_scaling = true
   
   nl_rel_tol = 1e-3
@@ -282,8 +286,8 @@ ksi = 2
   dt = 0.1e-3  # 小的时间步长以捕捉快速的温度变化
   end_time = 50e-3  # 总模拟时间
   fixed_point_max_its = 4
-  fixed_point_rel_tol = 1e-5
-  fixed_point_abs_tol = 1e-6
+  fixed_point_rel_tol = 1e-3
+  fixed_point_abs_tol = 1e-4
   accept_on_max_fixed_point_iteration = true
 []
 
@@ -291,4 +295,27 @@ ksi = 2
   exodus = true
   print_linear_residuals = false
   file_base = 'outputs/${l}'
+[]
+
+[Adaptivity]
+  initial_marker = marker
+  marker = marker
+  max_h_level = ${nh}
+  [Markers]
+    [marker]
+      type = PhasePiledFractureHSMarkerNoAD
+      von_mises_variable = MaxPrincipal
+      sigma0 = sigma0
+      x1 = 0.000001 #d变量小于x1时，标记为粗网格
+      x2 = 0.005 #d变量在x1和x2之间时，标记为细网格
+      xmax = 0.12 #d变量大于xmax时，一定是细网格
+      y1 = 0.45 #vonMises应力小于y1时，标记为粗网格
+      y2 = 0.6 #vonMises应力大于y2之间时，标记为细网格
+      variable = d
+      timeD = 3
+      timeStress = 5
+      d_change_threshold = 0.02
+      stress_change_threshold = 1e6
+    []
+  []
 []

@@ -5,7 +5,7 @@ LinearPower = 35
 LinearPower0_2 = '${fparse LinearPower*0.2}'
 endTime = 3e5
 dtmin = 1
-dt = 2000
+dt = 500
 dtMax = 5000
 endTime__50000 = '${fparse endTime-5000}'
 endTime__100000 = '${fparse endTime-10000}'
@@ -13,19 +13,19 @@ initial_T = 550
 pellet_E=201.3e9
 pellet_nu = 0.345   #RELAP5
 pellet_thermal_expansion_coef=1e-5#K-1
-pellet_critical_fracture_strength=10.0e7#Pa
+pellet_critical_fracture_strength=6.0e7#Pa
 density_percent = 0.95
 # Gc = 6#断裂能
 # fission_rate = 1.2e19
 # grain_size =10
-pellet_critical_energy = 5# 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
+pellet_critical_energy = 3# 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
 pellet_density='${fparse density_percent*10980}'#10431.0*0.85#kg⋅m-3理论密度为10.980
 #几何与网格参数
 # density_percent100 = '${fparse density_percent*100}'
-length_scale_paramete = 5e-5
+length_scale_paramete = 4e-5
 
-w = 0 #裂纹尖端时，l是mesh_size的2**w倍
-mesh_size = '${fparse 2*6e-5}' #网格尺寸即可
+w = 1 #裂纹尖端时，l是mesh_size的2**w倍
+mesh_size = '${fparse 8e-5}' #网格尺寸即可
 #将下列参数转化为整数
 pellet_outer_radius = 4.2e-3#直径变半径，并且单位变mm
 n_elems_azimuthal = '${fparse 2*ceil((3.1415*pellet_outer_radius/mesh_size)/2^w)}'  # 周向网格数（向上取整）
@@ -132,10 +132,10 @@ ksi = 2
     order = CONSTANT
     family = MONOMIAL
   []
-  [vonMises]
-    order = CONSTANT
-    family = MONOMIAL
-  []
+  # [vonMises]
+  #   order = CONSTANT
+  #   family = MONOMIAL
+  # []
   # [creep_strain_hoop]
   #   order = CONSTANT
   #   family = MONOMIAL
@@ -194,14 +194,14 @@ ksi = 2
     point1 = '0 0 0'
     point2 = '0 0 1'
   []
-    [vonMisesStress]
-      type = RankTwoScalarAux
-      variable = vonMises
-      rank_two_tensor = stress
-      execute_on = 'TIMESTEP_END'
-      scalar_type = VonMisesStress
-      # 不需要 index_i 和 index_j，因为我们使用 VonMisesStress 标量类型
-    []
+    # [vonMisesStress]
+    #   type = RankTwoScalarAux
+    #   variable = vonMises
+    #   rank_two_tensor = stress
+    #   execute_on = 'TIMESTEP_END'
+    #   scalar_type = VonMisesStress
+    #   # 不需要 index_i 和 index_j，因为我们使用 VonMisesStress 标量类型
+    # []
   #   [./creep_strain_hoop]
   #   type = RankTwoScalarAux
   #   variable = creep_strain_hoop
@@ -307,21 +307,21 @@ ksi = 2
   T_infinity = ${initial_T}
   coefficient = 3400#3500 W·m-2 K-1！！！！！！！！！！！！！！！！！！！！！！！！！！！
   []
-  #芯块包壳间隙压力边界条件
-  [gap_pressure_fuel_x]
-    type = Pressure
-    variable = disp_x
-    boundary = 'pellet_outer'
-    factor = 2e6 # 间隙压力2.5MPa
-  []
-  [gap_pressure_fuel_y]
-    type = Pressure
-    variable = disp_y
-    boundary = 'pellet_outer'
-    factor = 2e6
-    # function = 2 #新加的！！！！！！！！！！！！！！！！！！！！！！
-    # use_displaced_mesh = true
-  []
+  # #芯块包壳间隙压力边界条件
+  # [gap_pressure_fuel_x]
+  #   type = Pressure
+  #   variable = disp_x
+  #   boundary = 'pellet_outer'
+  #   factor = 2e6 # 间隙压力2.5MPa
+  # []
+  # [gap_pressure_fuel_y]
+  #   type = Pressure
+  #   variable = disp_y
+  #   boundary = 'pellet_outer'
+  #   factor = 2e6
+  #   # function = 2 #新加的！！！！！！！！！！！！！！！！！！！！！！
+  #   # use_displaced_mesh = true
+  # []
 []
 
 
@@ -492,7 +492,7 @@ ksi = 2
       use_threshold = true
       use_history_max = true
       tensile_strength = sigma0
-      degrade_out_of_plane_strain = false # 关键修改：防止 GPS 奇异性
+      degrade_out_of_plane_strain = true # 关键修改：防止 GPS 奇异性
       
       output_properties = 'psie_active'
       outputs = exodus 
@@ -550,7 +550,7 @@ ksi = 2
   # []
   [dt_limit_func]
     type = ParsedFunction
-    expression = 'if(t < 800, 400,
+    expression = 'if(t < 1000, 500,
                   if(t < 3000, 25,
                   if(t < 150000, ${dt},
                   if(t < (${endTime__100000}),${dtMax},
@@ -601,15 +601,15 @@ ksi = 2
   line_search = 'bt'
   automatic_scaling = true # 启用自动缩放功能，有助于改善病态问题的收敛性
   compute_scaling_once = true
-  nl_max_its = 200
-  nl_rel_tol = 1e-4
-  nl_abs_tol = 1e-5
+  nl_max_its = 20
+  nl_rel_tol = 1e-3
+  nl_abs_tol = 1e-4
   dtmin = ${dtmin}
   dt = ${dt}
   end_time = ${endTime}
   # fixed_point_max_its = 6
-  # fixed_point_rel_tol =1e-5 # 固定点迭代的相对容差
-  # fixed_point_abs_tol = 1e-6
+  fixed_point_rel_tol =1e-3 # 固定点迭代的相对容差
+  fixed_point_abs_tol = 1e-4
   accept_on_max_fixed_point_iteration = true
   [TimeStepper]
     type = FunctionDT
@@ -620,10 +620,35 @@ ksi = 2
   [my_checkpoint]
     type = Checkpoint
     time_step_interval = 5    # 每5个时间步保存
-    num_files = 50            # 保留最近4个检查点
+    num_files = 1            # 保留最近4个检查点
     wall_time_interval = 600 # 每10分钟保存一次（秒）
   []
   exodus = true #表示输出exodus格式文件
   print_linear_residuals = false
   file_base = '2.1-2D-New2026/1'
+[]
+
+
+
+[Adaptivity]
+  initial_marker = marker
+  marker = marker
+  max_h_level = ${w}
+  [Markers]
+    [marker]
+      type = PhasePiledFractureHSMarkerNoAD
+      von_mises_variable = stress_I
+      sigma0 = sigma0
+      x1 = 0.000001 #d变量小于x1时，标记为粗网格
+      x2 = 0.005 #d变量在x1和x2之间时，标记为细网格
+      xmax = 0.12 #d变量大于xmax时，一定是细网格
+      y1 = 0.45 #vonMises应力小于y1时，标记为粗网格
+      y2 = 0.6 #vonMises应力大于y2之间时，标记为细网格
+      variable = d
+      timeD = 3
+      timeStress = 5
+      d_change_threshold = 0.02
+      stress_change_threshold = 1e6
+    []
+  []
 []

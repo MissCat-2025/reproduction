@@ -127,8 +127,8 @@ a3 = ${a3}
 [Materials]
     [fracture_properties]
     type = ADGenericConstantMaterial
-    prop_names = 'Gc sigma0 l'
-    prop_values = '${Gc} ${sigma0} ${l}'
+    prop_names = 'Gc l'
+    prop_values = '${Gc} ${l}'
     block = pellet
   []
 [a11]
@@ -137,6 +137,11 @@ a3 = ${a3}
   coupled_variables = 'a1'
   expression = 'a1'
   block = pellet
+[]
+[sigma0]
+  type = GenericConstantMaterial
+  prop_names = 'sigma0'
+  prop_values = '${sigma0}'
 []
   #断裂力学-CZM模型
   [crack_geometric]
@@ -162,6 +167,7 @@ a3 = ${a3}
     expression = 'alpha*Gc/c0/l+g*(psie_active)'
     coupled_variables = 'd psie_active'
     material_property_names = 'alpha(d) g(d) Gc c0 l'
+    derivative_order = 1
     # output_properties = 'psi'
     # outputs = exodus
     block = pellet
@@ -174,7 +180,8 @@ a3 = ${a3}
   # petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type'
   # petsc_options_value = '201                hypre    boomeramg'  
   # solve_type = 'NEWTON'
-  solve_type = 'PJFNK'
+  # solve_type = 'PJFNK'
+  solve_type = NEWTON
   # petsc_options_iname = '-pc_type -ksp_type  -snes_type'
   # petsc_options_value = 'lu gmres  vinewtonrsls'  
   petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type  -snes_type'
@@ -182,24 +189,22 @@ a3 = ${a3}
   # petsc_options_iname = '-pc_type -ksp_type' 
   # petsc_options_value = 'lu gmres' 
   # petsc_options = '-snes_converged_reason -ksp_converged_reason -snes_monitor -ksp_monitor_true_residual'
-  line_search = 'bt'
-  automatic_scaling = true # 启用自动缩放功能，有助于改善病态问题的收敛性
-  compute_scaling_once = true
+  automatic_scaling = true
+  nl_rel_tol = 1e-7
+  nl_abs_tol = 1e-8
   # reuse_preconditioner = true
   # reuse_preconditioner_max_linear_its = 20
   nl_max_its = 200
-  nl_rel_tol = 1e-6 # 非线性求解的相对容差
-  nl_abs_tol = 1e-6 # 非线性求解的绝对容差
-  l_tol = 1e-8  # 线性求解的容差
-  l_abs_tol = 1e-6 # 线性求解的绝对容差
+  l_tol = 1e-7  # 线性求解的容差
+  l_abs_tol = 1e-8 # 线性求解的绝对容差
   l_max_its = 100 # 线性求解的最大迭代次数
   # abort_on_solve_fail = true
   dtmin = ${dtmin}
   dtmax = ${dtMax}
   end_time = ${endTime} # 总时间24h
 
-  fixed_point_rel_tol =1e-5 # 固定点迭代的相对容差
-  fixed_point_abs_tol = 1e-6 # 固定点迭代的绝对容差
+  # fixed_point_rel_tol =1e-3 # 固定点迭代的相对容差
+  # fixed_point_abs_tol = 1e-4 # 固定点迭代的绝对容差
   # accept_on_max_fixed_point_iteration = true
   [TimeStepper]
     type = FunctionDT
@@ -209,7 +214,7 @@ a3 = ${a3}
 [Functions]
   [dt_limit_func]
     type = ParsedFunction
-    expression = 'if(t < 800, 400,
+    expression = 'if(t < 1000, 500,
                   if(t < 3000, 25,
                   if(t < 150000, ${dt},
                   if(t < (${endTime__100000}),${dtMax},
@@ -241,4 +246,28 @@ a3 = ${a3}
 [Outputs]
   # exodus = true
   print_linear_residuals = false
+[]
+
+
+[Adaptivity]
+  initial_marker = marker
+  marker = marker
+  max_h_level = ${w}
+  [Markers]
+    [marker]
+      type = PhasePiledFractureHSMarkerNoAD
+      von_mises_variable = stress_I
+      sigma0 = sigma0
+      x1 = 0.000001 #d变量小于x1时，标记为粗网格
+      x2 = 0.005 #d变量在x1和x2之间时，标记为细网格
+      xmax = 0.12 #d变量大于xmax时，一定是细网格
+      y1 = 0.45 #vonMises应力小于y1时，标记为粗网格
+      y2 = 0.6 #vonMises应力大于y2之间时，标记为细网格
+      variable = d
+      timeD = 3
+      timeStress = 5
+      d_change_threshold = 0.02
+      stress_change_threshold = 1e6
+    []
+  []
 []

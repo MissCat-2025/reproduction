@@ -1,5 +1,5 @@
 # 陶瓷片热冲击实验 - 相场断裂部分
-l = 0.07e-3                # 相场正则化长度 (m)
+l = 0.075e-3                # 相场正则化长度 (m)
 nh = 2
 nx = '${fparse int(25e-3/(nh*nh*l/3))}'
 ny = '${fparse int(5e-3/(nh*nh*l/3))}'
@@ -80,7 +80,7 @@ ny = '${fparse int(5e-3/(nh*nh*l/3))}'
     prop_values = '${Gc} ${l}'
   []
   [sigma0]
-  type = ADParsedMaterial
+  type = ParsedMaterial
   property_name = sigma0
   coupled_variables = 'sigma0'
   expression = 'sigma0'
@@ -124,8 +124,8 @@ ny = '${fparse int(5e-3/(nh*nh*l/3))}'
   petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type -snes_type'
   petsc_options_value = '201                hypre    boomeramg vinewtonrsls'
   automatic_scaling = true
-  nl_rel_tol = 1e-7
-  nl_abs_tol = 1e-8
+  nl_rel_tol = 1e-9
+  nl_abs_tol = 1e-10
   dt = 0.1e-3
   end_time = 50e-3
 []
@@ -133,4 +133,27 @@ ny = '${fparse int(5e-3/(nh*nh*l/3))}'
 [Outputs]
   exodus = false
   print_linear_residuals = false
+[]
+
+[Adaptivity]
+  initial_marker = marker
+  marker = marker
+  max_h_level = ${nh}
+  [Markers]
+    [marker]
+      type = PhasePiledFractureHSMarkerNoAD
+      von_mises_variable = MaxPrincipal
+      sigma0 = sigma0
+      x1 = 0.000001 #d变量小于x1时，标记为粗网格
+      x2 = 0.005 #d变量在x1和x2之间时，标记为细网格
+      xmax = 0.12 #d变量大于xmax时，一定是细网格
+      y1 = 0.45 #vonMises应力小于y1时，标记为粗网格
+      y2 = 0.6 #vonMises应力大于y2之间时，标记为细网格
+      variable = d
+      timeD = 3
+      timeStress = 5
+      d_change_threshold = 0.02
+      stress_change_threshold = 1e6
+    []
+  []
 []
