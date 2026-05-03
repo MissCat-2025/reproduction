@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# pellet_critical_energy: 6
+# 生成时间: 2026-05-02 15:02:57
+
 # conda activate moose && dos2unix main_fi4_00e+19.i&& dos2unix sub_fi4_00e+19.i &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i main_fi4_00e+19.i --recover
 # conda activate moose && mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i Main.i --mesh-only
 #A4的最重要不一致是假设Lc是定值，Gc跟着E与ft变化/
@@ -28,11 +32,11 @@ density_percent = 0.95
 # Gc = 6#断裂能
 fission_rate = 2.00e+19
 grain_size =10
-pellet_critical_energy = 10
+pellet_critical_energy = 6
 # pellet_critical_fracture_strength=6e7#Pa
 # CGc = 0.0035
 porosity0 = 5
-largestPoreSize0 = 25
+largestPoreSize0 = 30
 WeibullSeed = 0
 WeibullShape = 50
 
@@ -116,7 +120,7 @@ ksi = 2
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = 'sub_fi1_60e+19_la58_pe2_8.i'
+    input_files = 'sub_pe6.i'
     cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};endTime=${endTime};dt=${dt};pellet_inner_diameter=${pellet_inner_diameter};pellet_outer_diameter=${pellet_outer_diameter};dtMax=${dtMax};PowMaxTime=${PowMaxTime}'
     execute_on = 'TIMESTEP_END'
         # 强制同步参数
@@ -810,6 +814,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   []
 []
 [Outputs]
+ 
   exodus = true #表示输出exodus格式文件
   print_linear_residuals = false
   hide = 'pellet_area'

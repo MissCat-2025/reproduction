@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# pellet_critical_energy: 1.5
+# 生成时间: 2026-05-02 00:42:40
+
 #conda activate moose && mpirun -n 11 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i --recover 2.1-2D-New2026/1_cp/0100
 # conda activate moose &&mpirun -n 9 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i --recover
 # conda activate moose &&mpirun -n 9 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i
@@ -18,7 +22,7 @@ density_percent = 0.95
 # Gc = 6#断裂能
 # fission_rate = 1.2e19
 # grain_size =10
-pellet_critical_energy = 3# 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
+pellet_critical_energy = 1.5# 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
 pellet_density='${fparse density_percent*10980}'#10431.0*0.85#kg⋅m-3理论密度为10.980
 #几何与网格参数
 # density_percent100 = '${fparse density_percent*100}'
@@ -76,7 +80,7 @@ ksi = 2
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = '2.1_Sub.i'
+    input_files = 'sub_pe1_5.i'
     cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};Gc=${pellet_critical_energy};sigma0=${pellet_critical_fracture_strength};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};endTime=${endTime};dtmin=${dtmin};dt=${dt};pellet_outer_radius=${pellet_outer_radius};dtMax=${dtMax}'
     execute_on = 'TIMESTEP_END'
     sub_cycling = false

@@ -1,10 +1,10 @@
 # === 参数研究案例 ===
-# fission_rate: 4.80e+19
-# 生成时间: 2026-05-01 08:29:16
+# pellet_critical_energy: 10
+# 生成时间: 2026-05-03 18:01:30
 
 # conda activate moose && dos2unix main_fi4_00e+19.i&& dos2unix sub_fi4_00e+19.i &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i main_fi4_00e+19.i --recover
 # conda activate moose && mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i Main.i --mesh-only
-#A4的最重要不一致是假设Lc是定值，Gc跟着E与ft变化/
+#A5变化的是燃耗变化的热导率Effect of burn-up on the thermal conductivity of uranium dioxide up to 100.000 MWdt−1
 initial_T = 293.15
 initial_T_in = 570.7
 initial_T_out = 582.8
@@ -30,13 +30,13 @@ pellet_nu = 0.345
 pellet_thermal_expansion_coef=1e-5#K-1
 density_percent = 0.95
 # Gc = 6#断裂能
-fission_rate = 4.80e+19
+fission_rate = 2.00e+19
 grain_size =10
-pellet_critical_energy = 5
+pellet_critical_energy = 10
 # pellet_critical_fracture_strength=6e7#Pa
 # CGc = 0.0035
 porosity0 = 5
-largestPoreSize0 = 30
+largestPoreSize0 = 25
 WeibullSeed = 0
 WeibullShape = 50
 
@@ -120,7 +120,7 @@ ksi = 2
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = 'sub_fi4_80e+19.i'
+    input_files = 'sub_pe10.i'
     cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};endTime=${endTime};dt=${dt};pellet_inner_diameter=${pellet_inner_diameter};pellet_outer_diameter=${pellet_outer_diameter};dtMax=${dtMax};PowMaxTime=${PowMaxTime}'
     execute_on = 'TIMESTEP_END'
         # 强制同步参数
@@ -445,12 +445,12 @@ ksi = 2
     #   output_properties = 'sigma0'
     #   outputs = exodus
     #   block = pellet
-    # []
-    [pellet_thermal_conductivity] #新加的！！！！！！！！！！！！！！！！！！！！！！
+    [pellet_thermal_conductivity]
       type = ADParsedMaterial
       property_name = thermal_conductivity #参考某论文来的，不是Fink-Lukuta model（非常复杂）
+      material_property_names = 'burnup'
       coupled_variables = 'T d'
-      expression = '(1-0.99*d)*(100/(7.5408 + 17.692*T/1000 + 3.6142*(T/1000)^2) + 6400/((T/1000)^2.5)*exp(-16.35/(T/1000)))'
+      expression = '(1-0.99*d)*(1 / ((0.1148 + 0.0035 * (burnup*100*9.3)) + (0.0002474 -8.24e-7 * (burnup*100*9.3)) * T) + 0.0132 * exp(0.00188 * T))'
       block = pellet
     []
     [pellet_specific_heat]
