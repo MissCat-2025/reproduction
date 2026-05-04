@@ -29,11 +29,11 @@ density_percent = 0.95
 # Gc = 6#断裂能
 fission_rate = 2.00e+19
 grain_size =10
-pellet_critical_energy = 10
+pellet_critical_energy = 1.6
 # pellet_critical_fracture_strength=6e7#Pa
 # CGc = 0.0035
-porosity0 = 5
-largestPoreSize0 = 30
+porosity0 = 3
+largestPoreSize0 = 50
 WeibullSeed = 0
 WeibullShape = 50
 
@@ -50,9 +50,9 @@ lch = '${fparse E00*pellet_critical_energy/ft/ft}'
 # 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
 pellet_inner_diameter = 10.291         # 芯块内直径mm
 pellet_outer_diameter = 14.627         # 芯块外直径mm
-length_scale_paramete = 5e-5
-w = 1 #裂纹尖端时，l是mesh_size的2**w倍
-mesh_size = '${fparse 2*length_scale_paramete}' #网格尺寸即可
+length_scale_paramete = 2e-5         #3.14*1.6e-5=5e-5，10e-5为随机场特征尺寸,5e-5为随机场网格尺寸，1.6e-5为裂纹宽度，0.8为最大网格尺寸
+w = 2 #裂纹尖端时，l是mesh_size的2**w倍
+mesh_size = '${fparse 5e-5}' #网格尺寸即可
 
 # length_scale_paramete=${fparse mesh_size}
 n_azimuthal = '${fparse int(3.1415*(pellet_outer_diameter)/mesh_size*1e-3/2^(w-2))}' #int()取整
@@ -754,7 +754,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   dtmax = 5000000
   end_time = ${endTime} #105000#${endTime} # 总时间24h
 
-  fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
+  fixed_point_rel_tol =1e-3 # 固定点迭代的相对容差
   [TimeStepper]
     type = FunctionDT
     function = dt_limit_func
@@ -769,11 +769,11 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
       type = PhasePiledFractureHSMarker
       von_mises_variable = stress_I
       sigma0 = sigma0
-      x1 = 0.000001 #d变量小于x1时，标记为粗网格
+      x1 = 0.00001 #d变量小于x1时，标记为粗网格
       x2 = 0.005 #d变量在x1和x2之间时，标记为细网格
       xmax = 0.01 #d变量大于xmax时，一定是细网格
-      y1 = 0.45 #vonMises应力小于y1时，标记为粗网格
-      y2 = 0.6 #vonMises应力大于y2之间时，标记为细网格
+      y1 = 0.6 #vonMises应力小于y1时，标记为粗网格
+      y2 = 0.8 #vonMises应力大于y2之间时，标记为细网格
       variable = d
       timeD = 3
       timeStress = 5

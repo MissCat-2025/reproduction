@@ -24,7 +24,7 @@ RUN_STEP6 = True             # 全时间域标量导出
 
 
 # Step1 单次参数矩阵和 Checkpoint 配置
-template_main_name = "MainA5.i"
+template_main_name = "MainA6.i"
 template_sub_name = "Sub.i"
 STEP1_PARAM_MATRIX = {
     "pellet_critical_energy": [10],
@@ -62,7 +62,7 @@ STEP1_CHECKPOINT_CONFIG = '''
 # =========================== Step2 ============================
 
 
-MPI_PROCESSES = 9
+MPI_PROCESSES = 14
 
 
 # =========================== Step3 ============================
