@@ -1,4 +1,8 @@
 # === 参数研究案例 ===
+# pellet_critical_energy: 2
+# 生成时间: 2026-05-02 16:59:05
+
+# === 参数研究案例 ===
 # fission_rate: 1.60e+19
 # largestPoreSize: 58
 # pellet_critical_energy: 2.8
