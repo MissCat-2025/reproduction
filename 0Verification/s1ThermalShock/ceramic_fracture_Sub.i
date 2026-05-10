@@ -160,6 +160,9 @@ ny = '${fparse int(5e-3/(nh*nh*l/3))}'
 []
 
 [Outputs]
-  exodus = false
+  console = true
+  [./out]
+    type = Nemesis
+  [../]
   print_linear_residuals = false
 []

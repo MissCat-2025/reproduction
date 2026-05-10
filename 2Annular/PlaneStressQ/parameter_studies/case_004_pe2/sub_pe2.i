@@ -1,6 +1,6 @@
 # === 参数研究案例 ===
-# pellet_critical_energy: 4
-# 生成时间: 2026-03-24 11:23:14
+# pellet_critical_energy: 2
+# 生成时间: 2026-05-10 12:47:53
 
 
 [Problem]
@@ -14,8 +14,9 @@ pellet_inner_diameter = '${pellet_inner_diameter}'         # 芯块内直径mm
 pellet_outer_diameter = '${pellet_outer_diameter}'         # 芯块外直径mm
 # length_scale_paramete = 4.50e-5
 endTime = ${endTime}
-endTime__50000 = '${fparse endTime-5000}'
 endTime__100000 = '${fparse endTime-100000}'
+endTime__85000 = '${fparse endTime-85000}'
+endTime__30000 = '${fparse endTime-30000}'
 
 mesh_size = '${mesh_size}' #网格尺寸即可
 w = ${w} #裂纹尖端时，l是h的2**w倍
@@ -232,7 +233,7 @@ a3 = ${a3}
   dtmax = 50000
   end_time = ${endTime} #105000#${endTime} # 总时间24h
 
-  fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
+  fixed_point_rel_tol =1e-3 # 固定点迭代的相对容差
   [TimeStepper]
     type = FunctionDT
     function = dt_limit_func
@@ -244,8 +245,10 @@ a3 = ${a3}
   expression = 'if(t < 12000, 2000,
                  if(t < (${PowMaxTime}*1.2), ${dt},
                  if(t < (${endTime__100000}-${dtMax}),${dtMax},
-                 if(t < (${endTime__100000}),(4*${dt}),
-                 if(t < (${endTime__50000}+10000), ${dt},10000)))))'
+                 if(t < (${endTime__100000}),(10*${dt}),
+                 if(t < (${endTime__85000}),(2*${dt}),
+                 if(t < (${endTime__30000}),${dt2},
+                 if(t < (${endTime__30000}+10000),(4*${dt2}),5000)))))))'
 []
 []
 [Adaptivity]
@@ -257,11 +260,11 @@ a3 = ${a3}
       type = PhasePiledFractureHSMarker
       von_mises_variable = stress_I
       sigma0 = sigma0
-      x1 = 0.000001 #d变量小于x1时，标记为粗网格
+      x1 = 0.00001 #d变量小于x1时，标记为粗网格
       x2 = 0.005 #d变量在x1和x2之间时，标记为细网格
       xmax = 0.01 #d变量大于xmax时，一定是细网格
-      y1 = 0.45 #vonMises应力小于y1时，标记为粗网格
-      y2 = 0.6 #vonMises应力大于y2之间时，标记为细网格
+      y1 = 0.6 #vonMises应力小于y1时，标记为粗网格
+      y2 = 0.8 #vonMises应力大于y2之间时，标记为细网格
       variable = d
       timeD = 3
       timeStress = 5

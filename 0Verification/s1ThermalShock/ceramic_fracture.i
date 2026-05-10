@@ -174,7 +174,7 @@ Gc=${fparse (1+1/6)*Gc0}
     length_scale_parameter = ${l}  # 使用您定义的相场正则化长度
     gc = ${Gc}                     # 使用您定义的断裂能
     output_properties = 'pellet_critical_energy'
-    outputs = exodus
+    outputs = out
   []
   [sigma0]
     type = ADDerivativeParsedMaterial
@@ -184,7 +184,7 @@ Gc=${fparse (1+1/6)*Gc0}
     constant_names = 'ft'
     constant_expressions = ' ${ft}'
     output_properties = 'sigma0'
-    outputs = exodus
+    outputs = out
   []
   # 相场断裂模型材料
   [crack_geometric]
@@ -199,7 +199,7 @@ Gc=${fparse (1+1/6)*Gc0}
     material_property_names = 'Gc E l sigma0'
     expression = '4*E*Gc/sigma0/sigma0/l/3.14159'
     # output_properties = 'a1'
-    # outputs = exodus
+    # outputs = out
   []
   [degradation]
     type = RationalDegradationFunction
@@ -231,7 +231,7 @@ Gc=${fparse (1+1/6)*Gc0}
     phase_field = d
     degradation_function = g
     output_properties = 'psie_active'
-    outputs = exodus
+    outputs = out
   []
   [stress]
     type = ComputeSmallDeformationStress
@@ -290,7 +290,11 @@ Gc=${fparse (1+1/6)*Gc0}
 []
 
 [Outputs]
-  exodus = true
+
+  console = true
+  [./out]
+    type = Nemesis
+  [../]
   print_linear_residuals = false
   file_base = 'outputs/${l}'
 []

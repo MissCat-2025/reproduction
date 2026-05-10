@@ -24,10 +24,10 @@ RUN_STEP6 = True             # 全时间域标量导出
 
 
 # Step1 单次参数矩阵和 Checkpoint 配置
-template_main_name = "MainA6.i"
-template_sub_name = "Sub.i"
+template_main_name = "MainA7.i"
+template_sub_name = "SubA7.i"
 STEP1_PARAM_MATRIX = {
-    "pellet_critical_energy": [10],
+    "pellet_critical_energy": [0.5,1,1.5,2,2.5,3],
     # "pellet_critical_fracture_strength": [60e6,70e6,80e6],
     # "CGc": [0.003,0.0035,0.004],
     # "PressureFactor": [0,1e6, 2e6, 3e6, 4e6, 5e6, 6e6],

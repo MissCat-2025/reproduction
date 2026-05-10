@@ -35,7 +35,7 @@ UO2CreepRateExplicit::UO2CreepRateExplicit(const InputParameters & parameters)
     _Q1(declareProperty<Real>("Q1")),
     _Q2(declareProperty<Real>("Q2")),
     _Q3(21759.0),
-    _creep_rate(declareProperty<RankTwoTensor>("creep_rate")),
+    _creep_rate(declareADProperty<RankTwoTensor>("creep_rate")),
     _effective_creep(declareProperty<Real>("effective_creep")),
     _consider_transient_creep(getParam<bool>("consider_transient_creep")),
     _max_stress_time(declareProperty<Real>("max_stress_time")),
