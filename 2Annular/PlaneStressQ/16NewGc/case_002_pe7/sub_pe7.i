@@ -1,7 +1,6 @@
 # === 参数研究案例 ===
-# end_time = 1.05e+5
-# pellet_critical_energy: 3
-# 生成时间: 2026-04-30 21:13:33
+# pellet_critical_energy: 7
+# 生成时间: 2026-05-02 15:02:57
 
 
 [Problem]
@@ -231,7 +230,7 @@ a3 = ${a3}
   abort_on_solve_fail = true
   dtmin = 1
   dtmax = 50000
-  end_time = 105000#${endTime} #105000#${endTime} # 总时间24h
+  end_time = ${endTime} #105000#${endTime} # 总时间24h
 
   fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
   [TimeStepper]

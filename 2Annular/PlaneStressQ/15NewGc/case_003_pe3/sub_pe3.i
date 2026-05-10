@@ -1,7 +1,7 @@
 # === 参数研究案例 ===
 # end_time = 1.05e+5
-# pellet_critical_energy: 4
-# 生成时间: 2026-04-30 21:13:33
+# pellet_critical_energy: 3
+# 生成时间: 2026-04-30 21:53:52
 
 
 [Problem]

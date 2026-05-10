@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# pellet_critical_energy: 3
+# 生成时间: 2026-05-02 00:42:40
+
 #conda activate moose && mpirun -n 11 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i --recover 2.1-2D-New2026/1_cp/0100
 # conda activate moose &&mpirun -n 9 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i --recover
 # conda activate moose &&mpirun -n 9 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i
@@ -18,11 +22,11 @@ density_percent = 0.95
 # Gc = 6#断裂能
 # fission_rate = 1.2e19
 # grain_size =10
-pellet_critical_energy = 2# 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
+pellet_critical_energy = 3# 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
 pellet_density='${fparse density_percent*10980}'#10431.0*0.85#kg⋅m-3理论密度为10.980
 #几何与网格参数
 # density_percent100 = '${fparse density_percent*100}'
-length_scale_paramete = 6e-5
+length_scale_paramete = 4e-5
 
 w = 1 #裂纹尖端时，l是mesh_size的2**w倍
 mesh_size = '${fparse 8e-5}' #网格尺寸即可
@@ -37,15 +41,15 @@ n_elems_radial_pellet = '${fparse int((pellet_outer_radius/mesh_size)/2^w)}'    
 power_factor = '${fparse 1000*1/3.1415926/pellet_outer_radius/pellet_outer_radius}' #新加的！！！！！！！！！！！！！！！！！！！！！！
 
 #相场断裂参数：
-m = 2
-a2 = -0.5
-a3 = 0
-ksi = 2
-
-# m = 4
-# a2 = 0.5396842
+# m = 2
+# a2 = 2
 # a3 = 0
 # ksi = 2
+
+m = 4
+a2 = 0.5396842
+a3 = 0
+ksi = 2
 [Mesh]
   [pellet_clad_gap]
     type = ConcentricCircleMeshGenerator
@@ -76,7 +80,7 @@ ksi = 2
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = '2.1_Sub.i'
+    input_files = 'sub_pe3.i'
     cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};Gc=${pellet_critical_energy};sigma0=${pellet_critical_fracture_strength};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};endTime=${endTime};dtmin=${dtmin};dt=${dt};pellet_outer_radius=${pellet_outer_radius};dtMax=${dtMax}'
     execute_on = 'TIMESTEP_END'
     sub_cycling = false
@@ -488,11 +492,11 @@ ksi = 2
       phase_field = d
       degradation_function = g
       kinematic_assumption = PLANE_STRAIN 
-      decomposition = SPECTRAL#SPECTRAL#NONE #VOLDEV
+      decomposition = VOLDEV#NONE #SPECTRAL
       use_threshold = true
       use_history_max = true
       tensile_strength = sigma0
-      degrade_out_of_plane_strain = false # 关键修改：防止 GPS 奇异性
+      degrade_out_of_plane_strain = true # 关键修改：防止 GPS 奇异性
       
       output_properties = 'psie_active'
       outputs = exodus 
@@ -550,7 +554,7 @@ ksi = 2
   # []
   [dt_limit_func]
     type = ParsedFunction
-    expression = 'if(t < 600, 200,
+    expression = 'if(t < 1000, 500,
                   if(t < 3000, 25,
                   if(t < 150000, ${dt},
                   if(t < (${endTime__100000}),${dtMax},

@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# dos2unix Utils/run_paraview.sh
 # 激活 MOOSE 运行环境，并把参数转给 Python 脚本
 source /home/yp/miniforge/etc/profile.d/conda.sh
 conda activate moose

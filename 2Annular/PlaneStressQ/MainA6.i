@@ -1,11 +1,12 @@
 # conda activate moose && dos2unix main_fi4_00e+19.i&& dos2unix sub_fi4_00e+19.i &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i main_fi4_00e+19.i --recover
 # conda activate moose && mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i Main.i --mesh-only
-#A4的最重要不一致是假设Lc是定值，Gc跟着E与ft变化/
+#A5变化的是燃耗变化的热导率Effect of burn-up on the thermal conductivity of uranium dioxide up to 100.000 MWdt−1
+#更新了孔隙率，使用自己拟合的公式
 initial_T = 293.15
 initial_T_in = 570.7
 initial_T_out = 582.8
-coolant_heat_transfer_coefficient_in = 4567
-coolant_heat_transfer_coefficient_out = 8000
+coolant_heat_transfer_coefficient_in = 3000
+coolant_heat_transfer_coefficient_out = 6000
 LinearPower = 90
 
 Power0_2Time = '${fparse 2400}'
@@ -28,11 +29,11 @@ density_percent = 0.95
 # Gc = 6#断裂能
 fission_rate = 2.00e+19
 grain_size =10
-pellet_critical_energy = 10
+pellet_critical_energy = 1.6
 # pellet_critical_fracture_strength=6e7#Pa
 # CGc = 0.0035
-porosity0 = 5
-largestPoreSize0 = 25
+porosity0 = 3
+largestPoreSize0 = 50
 WeibullSeed = 0
 WeibullShape = 50
 
@@ -49,9 +50,9 @@ lch = '${fparse E00*pellet_critical_energy/ft/ft}'
 # 双冷却环形燃料几何参数 (单位：mm)(无内外包壳)
 pellet_inner_diameter = 10.291         # 芯块内直径mm
 pellet_outer_diameter = 14.627         # 芯块外直径mm
-length_scale_paramete = 5e-5
-w = 1 #裂纹尖端时，l是mesh_size的2**w倍
-mesh_size = '${fparse 2*length_scale_paramete}' #网格尺寸即可
+length_scale_paramete = 2e-5         #3.14*1.6e-5=5e-5，10e-5为随机场特征尺寸,5e-5为随机场网格尺寸，1.6e-5为裂纹宽度，0.8为最大网格尺寸
+w = 2 #裂纹尖端时，l是mesh_size的2**w倍
+mesh_size = '${fparse 5e-5}' #网格尺寸即可
 
 # length_scale_paramete=${fparse mesh_size}
 n_azimuthal = '${fparse int(3.1415*(pellet_outer_diameter)/mesh_size*1e-3/2^(w-2))}' #int()取整
@@ -348,12 +349,12 @@ ksi = 2
     factor = 2e6
     # use_displaced_mesh = true
   []
-  [xplane]
-    type = DirichletBC
-    variable = x
-    boundary = 'pellet_inner pellet_outer'
-    value = 0.01
-  []
+  # [xplane]
+  #   type = DirichletBC
+  #   variable = x
+  #   boundary = 'pellet_inner pellet_outer'
+  #   value = 0.01
+  # []
   [coolant_bc_in]#对流边界条件
     type = ConvectiveFluxFunction
     variable = T
@@ -404,7 +405,7 @@ ksi = 2
       type = ADDerivativeParsedMaterial
       property_name = largestPoreSize
       material_property_names = 'burnup'
-      expression = 'PS+PS*2*(burnup/(0.015+burnup))'
+      expression = 'PS+PS*3*(burnup/(0.02+burnup))'
       constant_names = 'PS'
       constant_expressions = '${largestPoreSize0}'
       block = pellet
@@ -413,11 +414,10 @@ ksi = 2
       type = ADDerivativeParsedMaterial
       property_name = porosity
       material_property_names = 'burnup'
-      expression = 'P+P*4*(burnup/(0.01+burnup))'
-      constant_names = 'P'
-      constant_expressions = '${porosity0}'
+      expression = '100*(7.3e-6*(burnup*100*9.3)*(burnup*100*9.3)-4.98e-5*(burnup*100*9.3)+0.0294)'
       block = pellet
     []
+    
     [sigma0]
       type = ADDerivativeParsedMaterial
       property_name = sigma0
@@ -441,12 +441,12 @@ ksi = 2
     #   output_properties = 'sigma0'
     #   outputs = exodus
     #   block = pellet
-    # []
-    [pellet_thermal_conductivity] #新加的！！！！！！！！！！！！！！！！！！！！！！
+    [pellet_thermal_conductivity]
       type = ADParsedMaterial
       property_name = thermal_conductivity #参考某论文来的，不是Fink-Lukuta model（非常复杂）
+      material_property_names = 'burnup'
       coupled_variables = 'T d'
-      expression = '(1-0.99*d)*(100/(7.5408 + 17.692*T/1000 + 3.6142*(T/1000)^2) + 6400/((T/1000)^2.5)*exp(-16.35/(T/1000)))'
+      expression = '(1-0.99*d)*(1 / ((0.1148 + 0.0035 * (burnup*100*9.3)) + (0.0002474 -8.24e-7 * (burnup*100*9.3)) * T) + 0.0132 * exp(0.00188 * T))'
       block = pellet
     []
     [pellet_specific_heat]
@@ -754,7 +754,7 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
   dtmax = 5000000
   end_time = ${endTime} #105000#${endTime} # 总时间24h
 
-  fixed_point_rel_tol =1e-4 # 固定点迭代的相对容差
+  fixed_point_rel_tol =1e-3 # 固定点迭代的相对容差
   [TimeStepper]
     type = FunctionDT
     function = dt_limit_func
@@ -769,11 +769,11 @@ power_factor = '${fparse 1000*1/3.1415926/(pellet_outer_radius^2-pellet_inner_ra
       type = PhasePiledFractureHSMarker
       von_mises_variable = stress_I
       sigma0 = sigma0
-      x1 = 0.000001 #d变量小于x1时，标记为粗网格
+      x1 = 0.00001 #d变量小于x1时，标记为粗网格
       x2 = 0.005 #d变量在x1和x2之间时，标记为细网格
       xmax = 0.01 #d变量大于xmax时，一定是细网格
-      y1 = 0.45 #vonMises应力小于y1时，标记为粗网格
-      y2 = 0.6 #vonMises应力大于y2之间时，标记为细网格
+      y1 = 0.6 #vonMises应力小于y1时，标记为粗网格
+      y2 = 0.8 #vonMises应力大于y2之间时，标记为细网格
       variable = d
       timeD = 3
       timeStress = 5
