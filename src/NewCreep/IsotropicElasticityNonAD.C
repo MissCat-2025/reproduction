@@ -188,11 +188,17 @@ IsotropicElasticityNonAD::computeJacobianMult(const RankTwoTensor & elastic_stra
   const RankFourTensor I2I2 = I2.outerProduct(I2);
   const RankFourTensor C_intact = lambda * I2I2 + 2.0 * G * I4sym;
 
+  auto restoreOutOfPlaneRow = [&](RankFourTensor & tensor) {
+    if (!_degrade_out_of_plane_strain && _kinematic_assumption == "PLANE_STRAIN")
+      for (unsigned int i = 0; i < RankTwoTensor::N; ++i)
+        for (unsigned int j = 0; j < RankTwoTensor::N; ++j)
+          tensor(2, 2, i, j) = C_intact(2, 2, i, j);
+  };
+
   if (_decomposition == "NONE" || _decomposition == "MAXPRINCIPAL")
   {
     RankFourTensor C = _g[_qp] * C_intact;
-    if (!_degrade_out_of_plane_strain && _kinematic_assumption == "PLANE_STRAIN")
-      C(2, 2, 2, 2) = C_intact(2, 2, 2, 2); // Restore C3333
+    restoreOutOfPlaneRow(C);
     return C;
   }
 
@@ -210,9 +216,8 @@ IsotropicElasticityNonAD::computeJacobianMult(const RankTwoTensor & elastic_stra
 
     const RankFourTensor Jacobian_pos = C_intact - Jacobian_neg;
     RankFourTensor Jacobian = _g[_qp] * Jacobian_pos + Jacobian_neg;
-    
-    if (!_degrade_out_of_plane_strain && _kinematic_assumption == "PLANE_STRAIN")
-      Jacobian(2, 2, 2, 2) = C_intact(2, 2, 2, 2); // Restore C3333
+
+    restoreOutOfPlaneRow(Jacobian);
 
     return Jacobian;
   }
@@ -226,8 +231,7 @@ IsotropicElasticityNonAD::computeJacobianMult(const RankTwoTensor & elastic_stra
 
     RankFourTensor Jacobian = (I4sym - (1.0 - _g[_qp]) * Ppos) * C_intact;
 
-    if (!_degrade_out_of_plane_strain && _kinematic_assumption == "PLANE_STRAIN")
-      Jacobian(2, 2, 2, 2) = C_intact(2, 2, 2, 2); // Restore C3333
+    restoreOutOfPlaneRow(Jacobian);
 
     return Jacobian;
   }
@@ -404,6 +408,11 @@ IsotropicElasticityNonAD::computeStressMaxPrincipalDecomposition(const RankTwoTe
   const RankTwoTensor stress_intact = lambda * strain.trace() * I2 + 2.0 * G * strain;
   const RankTwoTensor stress = _g[_qp] * stress_intact;
 
+  RankTwoTensor stress_reg = stress;
+
+  if (!_degrade_out_of_plane_strain && _kinematic_assumption == "PLANE_STRAIN")
+    stress_reg(2, 2) = stress_intact(2, 2);
+
   std::vector<Real> eigenvals(RankTwoTensor::N);
   stress_intact.symmetricEigenvalues(eigenvals);
 
@@ -429,11 +438,11 @@ IsotropicElasticityNonAD::computeStressMaxPrincipalDecomposition(const RankTwoTe
              << " dpsie_dd=" << _dpsie_dd[_qp] << " strain_00=" << strain(0, 0)
              << " strain_11=" << strain(1, 1) << " strain_22=" << strain(2, 2)
              << " strain_01=" << strain(0, 1) << " strain_12=" << strain(1, 2)
-             << " strain_02=" << strain(0, 2) << " stress_00=" << stress(0, 0)
-             << " stress_11=" << stress(1, 1) << " stress_22=" << stress(2, 2)
-             << " stress_01=" << stress(0, 1) << " stress_12=" << stress(1, 2)
-             << " stress_02=" << stress(0, 2) << std::endl;
+             << " strain_02=" << strain(0, 2) << " stress_00=" << stress_reg(0, 0)
+             << " stress_11=" << stress_reg(1, 1) << " stress_22=" << stress_reg(2, 2)
+             << " stress_01=" << stress_reg(0, 1) << " stress_12=" << stress_reg(1, 2)
+             << " stress_02=" << stress_reg(0, 2) << std::endl;
   }
 
-  return stress;
+  return stress_reg;
 }

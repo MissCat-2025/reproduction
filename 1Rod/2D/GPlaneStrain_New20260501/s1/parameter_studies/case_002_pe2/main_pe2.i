@@ -1,3 +1,7 @@
+# === 参数研究案例 ===
+# pellet_critical_energy: 2
+# 生成时间: 2026-05-02 16:59:05
+
 #conda activate moose && mpirun -n 11 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i --recover 2.1-2D-New2026/1_cp/0100
 # conda activate moose &&mpirun -n 9 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i --recover
 # conda activate moose &&mpirun -n 9 /home/yp/projects/reproduction/reproduction-opt -i 2.1main.i
@@ -76,7 +80,7 @@ ksi = 2
 [MultiApps]
   [fracture]
     type = TransientMultiApp
-    input_files = '2.1_Sub.i'
+    input_files = 'sub_pe2.i'
     cli_args = 'l=${length_scale_paramete};mesh_size=${mesh_size};Gc=${pellet_critical_energy};sigma0=${pellet_critical_fracture_strength};m=${m};w=${w};a2=${a2};a3=${a3};ksi=${ksi};endTime=${endTime};dtmin=${dtmin};dt=${dt};pellet_outer_radius=${pellet_outer_radius};dtMax=${dtMax}'
     execute_on = 'TIMESTEP_END'
     sub_cycling = false
