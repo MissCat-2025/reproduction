@@ -1,6 +1,6 @@
 # === 参数研究案例 ===
 # pellet_critical_energy: 2
-# 生成时间: 2026-05-10 12:47:53
+# 生成时间: 2026-05-11 15:38:40
 
 # conda activate moose && dos2unix main_fi4_00e+19.i&& dos2unix sub_fi4_00e+19.i &&mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i main_fi4_00e+19.i --recover
 # conda activate moose && mpirun -n 12 /home/yp/projects/reproduction/reproduction-opt -i Main.i --mesh-only
@@ -40,7 +40,7 @@ pellet_critical_energy = 2
 # pellet_critical_fracture_strength=6e7#Pa
 # CGc = 0.0035
 porosity0 = 3
-largestPoreSize0 = 25
+largestPoreSize0 = 50
 WeibullSeed = 0
 WeibullShape = 50
 
@@ -338,14 +338,14 @@ ksi = 2
     type = Pressure
     variable = disp_x
     boundary = 'pellet_inner pellet_outer'
-    factor = 2.5e6
+    factor = 2.0e6
     # use_displaced_mesh = true
   []
   [gap_pressure_fuel_y]
     type = Pressure
     variable = disp_y
     boundary = 'pellet_inner pellet_outer'
-    factor = 2.5e6
+    factor = 2.0e6
     # use_displaced_mesh = true
   []
   # [xplane]

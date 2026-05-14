@@ -1,6 +1,6 @@
 # === 参数研究案例 ===
-# pellet_critical_energy: 2.5
-# 生成时间: 2026-05-10 12:47:53
+# pellet_critical_energy: 2
+# 生成时间: 2026-05-11 15:38:40
 
 
 [Problem]

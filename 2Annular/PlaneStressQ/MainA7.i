@@ -36,7 +36,7 @@ pellet_critical_energy = 1.5
 # pellet_critical_fracture_strength=6e7#Pa
 # CGc = 0.0035
 porosity0 = 3
-largestPoreSize0 = 25
+largestPoreSize0 = 50
 WeibullSeed = 0
 WeibullShape = 50
 
@@ -334,14 +334,14 @@ ksi = 2
     type = Pressure
     variable = disp_x
     boundary = 'pellet_inner pellet_outer'
-    factor = 2.5e6
+    factor = 1.40e6
     # use_displaced_mesh = true
   []
   [gap_pressure_fuel_y]
     type = Pressure
     variable = disp_y
     boundary = 'pellet_inner pellet_outer'
-    factor = 2.5e6
+    factor = 1.40e6
     # use_displaced_mesh = true
   []
   # [xplane]

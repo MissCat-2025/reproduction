@@ -15,9 +15,8 @@ import json
 
 # RUN_STEP3 = True             # 收敛统计
 # RUN_STEP4 = True             # ParaView 单例版
-# RUN_STEP5 = True             # 时间 + 图片整理
-# RUN_STEP6 = True             # 全时间域标量导出
-RUN_STEP7 = True             # 特定时刻全网点数据导出
+RUN_STEP5 = True             # 时间 + 图片整理
+RUN_STEP6 = True             # 全时间域标量导出
 
 
 # RUN_STEP4_SERIES = True      # ParaView series 版
@@ -25,19 +24,22 @@ RUN_STEP7 = True             # 特定时刻全网点数据导出
 
 
 # Step1 单次参数矩阵和 Checkpoint 配置
-template_main_name = "MainA2.i"
-template_sub_name = "Sub.i"
+template_main_name = "MainA7.i"
+template_sub_name = "SubA7.i"
 STEP1_PARAM_MATRIX = {
-    # "pellet_critical_energy": [2,3,4,5,6],
+    "pellet_critical_energy": [2,2.5,3,3.5,4],  # 1e6 J/m^3
     # "pellet_critical_fracture_strength": [60e6,70e6,80e6],
-    # "WeibullShape": [50,30,20,10],
+    # "CGc": [0.003,0.0035,0.004],
     # "PressureFactor": [0,1e6, 2e6, 3e6, 4e6, 5e6, 6e6],
     # "degradation_factor": [1e-9,1e-8,1e-7,1e-6,1e-5],
     # "PowerTime": [30,60,120,480],
     # "WeibullSeed": [1,2,3,4]
-    "coolant_heat_transfer_coefficient_out": [2500,3000,3500]
+    # "coolant_heat_transfer_coefficient_out": [2500,3000,3500]
     # "Ndt": [50,100,200,300,400],
     # "length_scale_paramete": [7e-5,6e-5,5e-5,4e-5,3e-5]
+    # "largestPoreSize0":[20,30,40,50]
+    # "LinearPower":[100,85,70,55,40,25,10]
+    # "fission_rate":[1.2e+19,2.4e19,3.6e19,4.8e19]
 }
 
 # Step1 series 参数矩阵
@@ -60,7 +62,7 @@ STEP1_CHECKPOINT_CONFIG = '''
 # =========================== Step2 ============================
 
 
-MPI_PROCESSES = 15
+MPI_PROCESSES = 14
 
 
 # =========================== Step3 ============================
@@ -75,7 +77,7 @@ STEP3_STUDIES_SUBDIR = "parameter_studies"
 PV_SINGLE_STUDIES_SUBDIR = "parameter_studies"  #要分析的路径 例如 "post_results"
 
 # PV_FIELDS_SINGLE = "d:相场变量,hoop_stress:环向应力,radial_stress:径向应力"
-PV_FIELDS_SINGLE = "d:相场变量,sigma0:断裂强度,T:T"
+PV_FIELDS_SINGLE = "d:相场变量,sigma0:断裂强度,Gc:Gc"
 
 # PV_FIELDS_SERIES = "d:相场变量,hoop_stress:环向应力,sigma0:断裂强度"
 PV_IMAGE_SIZE = "1083,1083"
@@ -168,6 +170,8 @@ def main():
         env["DATA_TARGET_TIMES"] = ",".join(str(t) for t in DATA_TIMES)
     if "DATA_FIELDS" in globals():
         env["DATA_FIELDS"] = DATA_FIELDS
+    if "DATA_N" in globals():
+        env["DATA_N"] = str(DATA_N)
 
     # ===== Step 1: 生成参数研究案例 =====
     if _step_enabled("RUN_STEP1"):
@@ -246,9 +250,9 @@ def main():
         env["TARGET_STUDIES_DIR"] = target_studies_dir
         env["PV_OUTPUT_DIR"] = PV_OUTPUT_DIR_SINGLE
 
-        step5_path = os.path.join(UTILS_DIR, "step5_time_picture.py")
+        step5_path = os.path.join(UTILS_DIR, "run_step5_time_picture_auto.sh")
         run_step("Step 5 时间与图片整理",
-                 [sys.executable, step5_path],
+                 ["bash", step5_path],
                  cwd=UTILS_DIR, env=env)
 
     if _step_enabled("RUN_STEP6"):

@@ -4,6 +4,7 @@
 Step5：时间与图片整理脚本。
 - 解析 run.log 生成运行时间统计
 - 在 post_results 中搜索截图并生成组合图
+- 若缺少 Pillow，会自动尝试用 conda 补齐环境后继续执行
 """
 
 import os
@@ -11,6 +12,8 @@ import re
 import csv
 import glob
 import sys
+import subprocess
+import shutil
 from collections import defaultdict
 from datetime import datetime
 
@@ -43,6 +46,81 @@ if _env_time_picture_times:
 else:
     target_times = [80000, 125000, 300000]
 
+PILLOW_PACKAGE_NAME = "Pillow"
+BOOTSTRAP_CONDA_ENV = os.environ.get("TIME_PICTURE_CONDA_ENV", "paraview_post")
+_PILLOW_MODULES = None
+
+
+def _conda_executable():
+    return shutil.which("conda")
+
+
+def _env_exists(env_name):
+    conda = _conda_executable()
+    if not conda:
+        return False
+    result = subprocess.run(
+        [conda, "env", "list"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return False
+    for line in result.stdout.splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        parts = line.split()
+        if parts and parts[0] == env_name:
+            return True
+    return False
+
+
+def _bootstrap_pillow_with_conda():
+    conda = _conda_executable()
+    if not conda:
+        return False
+
+    if _env_exists(BOOTSTRAP_CONDA_ENV):
+        command = [conda, "install", "-y", "-n", BOOTSTRAP_CONDA_ENV, "-c", "conda-forge", PILLOW_PACKAGE_NAME]
+    else:
+        command = [conda, "create", "-y", "-n", BOOTSTRAP_CONDA_ENV, "-c", "conda-forge", "python", PILLOW_PACKAGE_NAME]
+
+    print(f"检测到缺少 {PILLOW_PACKAGE_NAME}，尝试自动准备 conda 环境: {' '.join(command)}")
+    result = subprocess.run(command)
+    if result.returncode != 0:
+        return False
+
+    if os.environ.get("TIME_PICTURE_CONDA_BOOTSTRAPPED") == "1":
+        return False
+
+    reexec_command = [conda, "run", "-n", BOOTSTRAP_CONDA_ENV, "python", os.path.abspath(__file__)] + sys.argv[1:]
+    print(f"切换到可用环境重新执行: {' '.join(reexec_command)}")
+    os.environ["TIME_PICTURE_CONDA_BOOTSTRAPPED"] = "1"
+    os.execv(reexec_command[0], reexec_command)
+    return True
+
+
+def _get_pillow_modules():
+    global _PILLOW_MODULES
+    if _PILLOW_MODULES is not None:
+        return _PILLOW_MODULES
+
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        if _bootstrap_pillow_with_conda():
+            return _PILLOW_MODULES  # pragma: no cover - process should have been replaced
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+        except ImportError as exc:
+            raise RuntimeError(
+                f"需要安装 {PILLOW_PACKAGE_NAME} 才能拼接图片，请先执行: conda install -n {BOOTSTRAP_CONDA_ENV} -c conda-forge Pillow"
+            ) from exc
+
+    _PILLOW_MODULES = (Image, ImageDraw, ImageFont)
+    return _PILLOW_MODULES
+
 def parse_image_time_from_name(filename):
     match = re.search(r'_(\d+p\d+)s(?=\.png$)', filename)
     if match:
@@ -57,10 +135,7 @@ def natural_case_sort_key(case_path):
     return 10**9
 
 def stitch_images_horizontally(image_paths):
-    try:
-        from PIL import Image
-    except ImportError as exc:
-        raise RuntimeError("需要安装 Pillow 才能拼接图片") from exc
+    Image, _, _ = _get_pillow_modules()
     images = []
     widths = []
     heights = []
@@ -93,10 +168,7 @@ def stitch_images_horizontally(image_paths):
                 pass
 
 def stitch_images_vertically(images):
-    try:
-        from PIL import Image
-    except ImportError as exc:
-        raise RuntimeError("需要安装 Pillow 才能拼接图片") from exc
+    Image, _, _ = _get_pillow_modules()
     if not images:
         return None
     max_width = max(img.width for img in images)
@@ -109,10 +181,7 @@ def stitch_images_vertically(images):
     return canvas
 
 def build_row_image_for_case(global_times, time_to_path, base_size):
-    try:
-        from PIL import Image
-    except ImportError as exc:
-        raise RuntimeError("需要安装 Pillow 才能拼接图片") from exc
+    Image, _, _ = _get_pillow_modules()
     w, h = base_size
     row_width = w * len(global_times)
     row_image = Image.new("RGB", (row_width, h), (255, 255, 255))
@@ -139,10 +208,7 @@ def build_row_image_for_case(global_times, time_to_path, base_size):
     return row_image, row_times
 
 def create_labeled_grid(row_entries, project_name, label_width=LABEL_WIDTH, title_height=TITLE_HEIGHT, time_label_height=TIME_LABEL_HEIGHT, row_time_label_height=ROW_TIME_LABEL_HEIGHT, time_centers=None, time_labels=None):
-    try:
-        from PIL import Image, ImageDraw, ImageFont
-    except ImportError as exc:
-        raise RuntimeError("需要安装 Pillow 才能拼接图片") from exc
+    Image, ImageDraw, ImageFont = _get_pillow_modules()
     if not row_entries:
         return None
     def build_font(size):
@@ -279,13 +345,10 @@ def build_case_time_grid(studies_dir, output_prefix="combined"):
         if not global_times:
             continue
         base_size = None
+        Image, _, _ = _get_pillow_modules()
         for time_paths in per_case_time_paths.values():
             if time_paths:
                 sample_path = next(iter(time_paths.values()))
-                try:
-                    from PIL import Image
-                except ImportError as exc:
-                    raise RuntimeError("需要安装 Pillow 才能拼接图片") from exc
                 with Image.open(sample_path) as img:
                     base_size = (img.width, img.height)
                 break
